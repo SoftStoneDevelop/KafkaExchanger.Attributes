@@ -9,7 +9,8 @@ namespace KafkaExchanger.Attributes
             Type outcomeKeyType,
             Type outcomeValueType,
             Type incomeKeyType,
-            Type incomeValueType
+            Type incomeValueType,
+            bool useLogger = true
             )
         {
         }

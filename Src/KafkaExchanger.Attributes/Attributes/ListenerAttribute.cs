@@ -1,13 +1,11 @@
 ﻿using System;
 
-namespace KafkaExchanger.Attributes
+namespace KafkaExchanger.Attributes.Attributes
 {
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
-    public sealed class ResponderAttribute : Attribute
+    public sealed class ListenerAttribute : Attribute
     {
-        public ResponderAttribute(
-            Type outcomeKeyType,
-            Type outcomeValueType,
+        public ListenerAttribute(
             Type incomeKeyType,
             Type incomeValueType,
             bool useLogger = true
