@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace KafkaExchanger.Attributes.Attributes
+namespace KafkaExchanger.Attributes
 {
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
     public sealed class ListenerAttribute : Attribute
