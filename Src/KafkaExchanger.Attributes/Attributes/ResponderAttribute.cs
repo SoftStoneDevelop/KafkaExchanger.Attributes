@@ -1,4 +1,5 @@
-﻿using System;
+﻿using KafkaExchanger.Attributes.Enums;
+using System;
 
 namespace KafkaExchanger.Attributes
 {
@@ -10,7 +11,13 @@ namespace KafkaExchanger.Attributes
             Type outcomeValueType,
             Type incomeKeyType,
             Type incomeValueType,
-            bool useLogger = true
+            bool useLogger = true,
+            int commitAfter = 1,
+            OrderMatters orderMatters = OrderMatters.NotMatters,
+            bool useCheckDuplicate = false,
+            bool useBeforeSendResponse = false,
+            bool useAfterSendResponse = false,
+            bool useAfterCommit = false
             )
         {
         }
