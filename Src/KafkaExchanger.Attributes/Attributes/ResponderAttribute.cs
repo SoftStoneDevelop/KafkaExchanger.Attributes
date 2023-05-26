@@ -12,10 +12,9 @@ namespace KafkaExchanger.Attributes
             Type incomeKeyType,
             Type incomeValueType,
             bool useLogger = true,
-            int commitAfter = 1,
+            uint commitAfter = 1,
             OrderMatters orderMatters = OrderMatters.NotMatters,
-            bool useCheckDuplicate = false,
-            bool useBeforeSendResponse = false,
+            bool checkCurrentState = false,
             bool useAfterSendResponse = false,
             bool useAfterCommit = false
             )
