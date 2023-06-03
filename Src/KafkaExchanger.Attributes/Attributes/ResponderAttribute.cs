@@ -16,7 +16,9 @@ namespace KafkaExchanger.Attributes
             OrderMatters orderMatters = OrderMatters.NotMatters,
             bool checkCurrentState = false,
             bool useAfterSendResponse = false,
-            bool useAfterCommit = false
+            bool useAfterCommit = false,
+            bool customOutcomeHeader = false,
+            bool customHeaders = false
             )
         {
         }
