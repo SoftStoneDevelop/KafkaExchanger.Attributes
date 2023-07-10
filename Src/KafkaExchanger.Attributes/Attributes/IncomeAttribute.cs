@@ -6,11 +6,8 @@ namespace KafkaExchanger.Attributes
     public sealed class IncomeAttribute : Attribute
     {
         public IncomeAttribute(
-            Type incomeKeyType,
-            Type incomeValueType,
-            bool useLogger = true,
-            bool customOutcomeHeader = false,
-            bool customHeaders = false
+            Type keyType,
+            Type valueType
             )
         {
         }
