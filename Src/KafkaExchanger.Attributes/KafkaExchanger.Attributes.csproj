@@ -4,7 +4,7 @@
 	</PropertyGroup>
 	<PropertyGroup>
 		<PackageId>KafkaExchanger.Attributes</PackageId>
-		<PackageVersion>1.1.4.0</PackageVersion>
+		<PackageVersion>1.1.5.0</PackageVersion>
 		<Authors>Brevnov Vyacheslav Sergeevich</Authors>
 		<RepositoryUrl>https://github.com/SoftStoneDevelop/KafkaExchanger.Attributes</RepositoryUrl>
 		<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
@@ -21,6 +21,6 @@
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="Confluent.Kafka" Version="2.1.1" />
-		<PackageReference Include="Google.Protobuf" Version="3.23.2" />
+		<PackageReference Include="Google.Protobuf" Version="3.23.4" />
 	</ItemGroup>
 </Project>

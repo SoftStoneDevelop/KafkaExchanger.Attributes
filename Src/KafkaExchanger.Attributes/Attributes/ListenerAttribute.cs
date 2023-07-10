@@ -6,8 +6,6 @@ namespace KafkaExchanger.Attributes
     public sealed class ListenerAttribute : Attribute
     {
         public ListenerAttribute(
-            Type incomeKeyType,
-            Type incomeValueType,
             bool useLogger = true
             )
         {

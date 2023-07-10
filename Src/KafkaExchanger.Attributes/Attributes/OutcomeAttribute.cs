@@ -3,9 +3,11 @@
 namespace KafkaExchanger.Attributes
 {
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
-    public sealed class RequestAwaiterAttribute : Attribute
+    public sealed class OutcomeAttribute : Attribute
     {
-        public RequestAwaiterAttribute(
+        public OutcomeAttribute(
+            Type incomeKeyType,
+            Type incomeValueType,
             bool useLogger = true,
             bool customOutcomeHeader = false,
             bool customHeaders = false

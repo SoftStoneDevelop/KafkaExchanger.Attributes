@@ -7,10 +7,6 @@ namespace KafkaExchanger.Attributes
     public sealed class ResponderAttribute : Attribute
     {
         public ResponderAttribute(
-            Type outcomeKeyType,
-            Type outcomeValueType,
-            Type incomeKeyType,
-            Type incomeValueType,
             bool useLogger = true,
             uint commitAfter = 1,
             OrderMatters orderMatters = OrderMatters.NotMatters,
