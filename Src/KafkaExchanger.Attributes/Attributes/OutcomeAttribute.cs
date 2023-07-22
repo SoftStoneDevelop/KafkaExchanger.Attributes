@@ -2,7 +2,7 @@
 
 namespace KafkaExchanger.Attributes
 {
-    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
     public sealed class OutcomeAttribute : Attribute
     {
         public OutcomeAttribute(
