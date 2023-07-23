@@ -9,7 +9,6 @@ namespace KafkaExchanger.Attributes
         public ResponderAttribute(
             bool useLogger = true,
             uint commitAfter = 1,
-            OrderMatters orderMatters = OrderMatters.NotMatters,
             bool checkCurrentState = false,
             bool useAfterSendResponse = false,
             bool useAfterCommit = false,
