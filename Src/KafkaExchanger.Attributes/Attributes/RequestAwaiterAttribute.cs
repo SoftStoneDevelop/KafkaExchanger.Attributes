@@ -6,12 +6,12 @@ namespace KafkaExchanger.Attributes
     public sealed class RequestAwaiterAttribute : Attribute
     {
         public RequestAwaiterAttribute(
-            string[] waitFromService,
             bool useLogger = true,
             bool checkCurrentState = false,
             bool useAfterCommit = false,
             bool customOutputHeader = false,
-            bool customHeaders = false
+            bool customHeaders = false,
+            string[] waitFromService = null
             )
         {
         }
