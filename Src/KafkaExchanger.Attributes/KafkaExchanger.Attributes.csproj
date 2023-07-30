@@ -4,7 +4,7 @@
 	</PropertyGroup>
 	<PropertyGroup>
 		<PackageId>KafkaExchanger.Attributes</PackageId>
-		<PackageVersion>1.1.8.1</PackageVersion>
+		<PackageVersion>1.1.8.2</PackageVersion>
 		<Authors>Brevnov Vyacheslav Sergeevich</Authors>
 		<RepositoryUrl>https://github.com/SoftStoneDevelop/KafkaExchanger.Attributes</RepositoryUrl>
 		<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>

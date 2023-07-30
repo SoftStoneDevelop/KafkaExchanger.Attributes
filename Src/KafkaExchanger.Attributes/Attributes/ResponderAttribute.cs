@@ -1,5 +1,4 @@
-﻿using KafkaExchanger.Attributes.Enums;
-using System;
+﻿using System;
 
 namespace KafkaExchanger.Attributes
 {
@@ -12,7 +11,7 @@ namespace KafkaExchanger.Attributes
             bool checkCurrentState = false,
             bool useAfterSendResponse = false,
             bool useAfterCommit = false,
-            bool customOutcomeHeader = false,
+            bool customOutputHeader = false,
             bool customHeaders = false
             )
         {
