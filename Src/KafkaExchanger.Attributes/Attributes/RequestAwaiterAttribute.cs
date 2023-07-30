@@ -10,8 +10,7 @@ namespace KafkaExchanger.Attributes
             bool checkCurrentState = false,
             bool useAfterCommit = false,
             bool customOutputHeader = false,
-            bool customHeaders = false,
-            string[] waitFromService = null
+            bool customHeaders = false
             )
         {
         }

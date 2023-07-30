@@ -7,7 +7,8 @@ namespace KafkaExchanger.Attributes
     {
         public InputAttribute(
             Type keyType,
-            Type valueType
+            Type valueType,
+            string[] waitFromService = null
             )
         {
         }
