@@ -3,9 +3,9 @@
 namespace KafkaExchanger.Attributes
 {
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-    public sealed class OutcomeAttribute : Attribute
+    public sealed class OutputAttribute : Attribute
     {
-        public OutcomeAttribute(
+        public OutputAttribute(
             Type keyType,
             Type valueType
             )

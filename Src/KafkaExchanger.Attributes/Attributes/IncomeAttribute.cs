@@ -3,9 +3,9 @@
 namespace KafkaExchanger.Attributes
 {
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-    public sealed class IncomeAttribute : Attribute
+    public sealed class InputAttribute : Attribute
     {
-        public IncomeAttribute(
+        public InputAttribute(
             Type keyType,
             Type valueType
             )
