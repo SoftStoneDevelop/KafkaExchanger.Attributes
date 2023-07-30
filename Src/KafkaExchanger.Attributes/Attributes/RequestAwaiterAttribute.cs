@@ -7,7 +7,6 @@ namespace KafkaExchanger.Attributes
     {
         public RequestAwaiterAttribute(
             bool useLogger = true,
-            uint commitAfter = 1,
             bool checkCurrentState = false,
             bool useAfterCommit = false,
             bool customOutcomeHeader = false,
