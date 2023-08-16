@@ -10,9 +10,7 @@ namespace KafkaExchanger.Attributes
             uint commitAfter = 1,
             bool checkCurrentState = false,
             bool useAfterSendResponse = false,
-            bool useAfterCommit = false,
-            bool customOutputHeader = false,
-            bool customHeaders = false
+            bool useAfterCommit = false
             )
         {
         }
