@@ -9,7 +9,8 @@ namespace KafkaExchanger.Attributes
             bool useLogger = true,
             bool checkCurrentState = false,
             bool useAfterCommit = false,
-            bool afterSend = false
+            bool afterSend = false,
+            bool AddAwaiterCheckStatus = false
             )
         {
         }
