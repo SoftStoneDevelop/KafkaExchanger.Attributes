@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 namespace KafkaExchanger
@@ -14,7 +15,7 @@ namespace KafkaExchanger
 
         public long HorizonId { get; init; }
 
-        public Confluent.Kafka.TopicPartitionOffset TopicPartitionOffset { get; set; }
+        public List<Confluent.Kafka.TopicPartitionOffset> TopicPartitionOffset { get; } = new();
     }
 
     public class HorizonStorage
