@@ -3,14 +3,30 @@ using System.Runtime.CompilerServices;
 
 namespace KafkaExchanger
 {
+    public class HorizonInfo
+    {
+        public HorizonInfo(
+            long horizonId, 
+            Confluent.Kafka.TopicPartitionOffset topicPartitionOffset
+            )
+        {
+            HorizonId = horizonId;
+            TopicPartitionOffset = topicPartitionOffset;
+        }
+
+        public long HorizonId { get; init; }
+
+        public Confluent.Kafka.TopicPartitionOffset TopicPartitionOffset { get; init; }
+    }
+
     public class HorizonStorage
     {
-        private long[] _data;
+        private HorizonInfo[] _data;
         private int _size;
 
         public HorizonStorage()
         {
-            _data = new long[10];
+            _data = new HorizonInfo[10];
             _size = 0;
         }
 
@@ -25,7 +41,7 @@ namespace KafkaExchanger
         /// </summary>
         /// <returns>Index of new element in storage</returns>
         /// <exception cref="Exception">If iitem already contains</exception>
-        public int Add(long item)
+        public int Add(HorizonInfo item)
         {
             if (_size >= _data.Length)
             {
@@ -36,12 +52,12 @@ namespace KafkaExchanger
             //right shift
             for (; i >= 0; i--)
             {
-                if (_data[i] == item)
+                if (_data[i].HorizonId == item.HorizonId)
                 {
                     throw new Exception("New element already contains, HorizonStorage is corrupted");
                 }
 
-                if (_data[i] > item)
+                if (_data[i].HorizonId > item.HorizonId)
                 {
                     break;
                 }
@@ -62,7 +78,7 @@ namespace KafkaExchanger
             while (lo <= hi)
             {
                 int i = lo + ((hi - lo) >> 1);
-                int order = _data[i].CompareTo(horizonId);
+                int order = _data[i].HorizonId.CompareTo(horizonId);
 
                 if (order == 0)
                 {
@@ -89,8 +105,19 @@ namespace KafkaExchanger
 
         public long Clear(int index)
         {
-            var horizonId = _data[index];
+            if(_size == 0)
+            {
+                throw new Exception("Storage is empty");
+            }
+
+            var horizonId = _data[index].HorizonId;
             _size = index;
+
+            var freeLength = _data.Length - _size;
+            if (freeLength > 0)
+            {
+                Array.Clear(array: _data, index: _size, length: freeLength);
+            }
 
             return horizonId;
         }
@@ -99,12 +126,11 @@ namespace KafkaExchanger
         private void IncreaseCapacity()
         {
             var oldData = _data;
-            _data = new long[oldData.Length * 2];
-
+            _data = new HorizonInfo[oldData.Length * 2];
             oldData.CopyTo(_data, 0);
         }
 
-        public ref long this[int index]
+        public HorizonInfo this[int index]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -112,7 +138,7 @@ namespace KafkaExchanger
                 if (index >= _size)
                     throw new IndexOutOfRangeException();
 
-                return ref _data[index];
+                return _data[index];
             }
         }
 
@@ -143,10 +169,10 @@ namespace KafkaExchanger
                 return false;
             }
 
-            public ref long Current
+            public HorizonInfo Current
             {
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                get => ref _array[_index];
+                get => _array[_index];
             }
         }
     }

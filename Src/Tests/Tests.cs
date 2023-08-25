@@ -12,13 +12,13 @@ namespace Tests
             var array = new HorizonStorage();
             for (long j = 0; j < 5000; j++)
             {
-                array.Add(j);
+                array.Add(new HorizonInfo(j, null));
             }
 
             long i = 0;
-            foreach (long item in array)
+            foreach (var item in array)
             {
-                Assert.That(item, Is.EqualTo(i));
+                Assert.That(item.HorizonId, Is.EqualTo(i));
                 i++;
             }
         }
@@ -31,14 +31,14 @@ namespace Tests
                 var array = new HorizonStorage();
                 for (int j = 0; j < 1000; j++)
                 {
-                    array.Add(j);
+                    array.Add(new HorizonInfo(j, null));
                 }
 
                 var pass = false;
 
                 try
                 {
-                    array.Add(i);
+                    array.Add(new HorizonInfo(i, null));
                 }
                 catch(Exception e)
                 {
@@ -59,7 +59,7 @@ namespace Tests
             var array = new HorizonStorage();
             for (long j = 0; j < 1000; j++)
             {
-                array.Add(j);
+                array.Add(new HorizonInfo(j, null));
             }
 
             for (int i = 0; i < 1000; i++)
@@ -69,11 +69,8 @@ namespace Tests
                 Assert.That(array.Size, Is.EqualTo(999 - i));
             }
 
-            array.Clear(0);
-            Assert.That(array.Size, Is.EqualTo(0));
-
-            array.Clear(0);
-            Assert.That(array.Size, Is.EqualTo(0));
+            var ex = Assert.Throws<Exception>(() => { array.Clear(0); });
+            Assert.That(ex.Message, Is.EqualTo("Storage is empty"));
         }
 
         [Test]
@@ -83,7 +80,7 @@ namespace Tests
             var array = new HorizonStorage();
             for (long j = 0; j < items; j++)
             {
-                array.Add(j);
+                array.Add(new HorizonInfo(j, null));
             }
 
             var value = items - 1;
@@ -100,7 +97,7 @@ namespace Tests
             var array = new HorizonStorage();
             for (long j = 0; j < 1000; j++)
             {
-                array.Add(j);
+                array.Add(new HorizonInfo(j, null));
             }
 
             for (long j = 0; j < 1000; j++)
