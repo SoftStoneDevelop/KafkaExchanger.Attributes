@@ -6,17 +6,15 @@ namespace KafkaExchanger
     public class HorizonInfo
     {
         public HorizonInfo(
-            long horizonId, 
-            Confluent.Kafka.TopicPartitionOffset topicPartitionOffset
+            long horizonId
             )
         {
             HorizonId = horizonId;
-            TopicPartitionOffset = topicPartitionOffset;
         }
 
         public long HorizonId { get; init; }
 
-        public Confluent.Kafka.TopicPartitionOffset TopicPartitionOffset { get; init; }
+        public Confluent.Kafka.TopicPartitionOffset TopicPartitionOffset { get; set; }
     }
 
     public class HorizonStorage

@@ -12,7 +12,7 @@ namespace Tests
             var array = new HorizonStorage();
             for (long j = 0; j < 5000; j++)
             {
-                array.Add(new HorizonInfo(j, null));
+                array.Add(new HorizonInfo(j));
             }
 
             long i = 0;
@@ -31,14 +31,14 @@ namespace Tests
                 var array = new HorizonStorage();
                 for (int j = 0; j < 1000; j++)
                 {
-                    array.Add(new HorizonInfo(j, null));
+                    array.Add(new HorizonInfo(j));
                 }
 
                 var pass = false;
 
                 try
                 {
-                    array.Add(new HorizonInfo(i, null));
+                    array.Add(new HorizonInfo(i));
                 }
                 catch(Exception e)
                 {
@@ -59,7 +59,7 @@ namespace Tests
             var array = new HorizonStorage();
             for (long j = 0; j < 1000; j++)
             {
-                array.Add(new HorizonInfo(j, null));
+                array.Add(new HorizonInfo(j));
             }
 
             for (int i = 0; i < 1000; i++)
@@ -80,7 +80,7 @@ namespace Tests
             var array = new HorizonStorage();
             for (long j = 0; j < items; j++)
             {
-                array.Add(new HorizonInfo(j, null));
+                array.Add(new HorizonInfo(j));
             }
 
             var value = items - 1;
@@ -97,7 +97,7 @@ namespace Tests
             var array = new HorizonStorage();
             for (long j = 0; j < 1000; j++)
             {
-                array.Add(new HorizonInfo(j, null));
+                array.Add(new HorizonInfo(j));
             }
 
             for (long j = 0; j < 1000; j++)
