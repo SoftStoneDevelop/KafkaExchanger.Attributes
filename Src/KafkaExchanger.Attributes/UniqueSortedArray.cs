@@ -3,16 +3,14 @@ using System.Runtime.CompilerServices;
 
 namespace KafkaExchanger
 {
-    public ref struct UniqueSortedArray
+    public class UniqueSortedArray
     {
         private long[] _data;
-        private Span<long> _dataSpan;
         private int _size;
 
         public UniqueSortedArray()
         {
             _data = new long[10];
-            _dataSpan = _data.AsSpan();
             _size = 0;
         }
 
@@ -24,7 +22,7 @@ namespace KafkaExchanger
 
         public void Add(long item)
         {
-            if (_size >= _dataSpan.Length)
+            if (_size >= _data.Length)
             {
                 IncreaseCapacity();
             }
@@ -33,20 +31,20 @@ namespace KafkaExchanger
             //right shift
             for (i = _size - 1; i >= 0; i--)
             {
-                if (_dataSpan[i] == item)
+                if (_data[i] == item)
                 {
                     throw new Exception("New element already contains in array, array is corrupted");
                 }
 
-                if (_dataSpan[i] < item)
+                if (_data[i] < item)
                 {
                     break;
                 }
 
-                _dataSpan[i + 1] = _dataSpan[i];
+                _data[i + 1] = _data[i];
             }
 
-            _dataSpan[i + 1] = item;
+            _data[i + 1] = item;
             _size++;
         }
 
@@ -54,14 +52,12 @@ namespace KafkaExchanger
         private void IncreaseCapacity()
         {
             var oldData = _data;
-            var oldSpan = _dataSpan;
             _data = new long[oldData.Length * 2];
-            _dataSpan = _data.AsSpan();
 
-            oldSpan.CopyTo(_dataSpan);
+            oldData.CopyTo(_data, 0);
         }
 
-        public ref long this[int index]
+        public long this[int index]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -69,7 +65,7 @@ namespace KafkaExchanger
                 if (index >= _size)
                     throw new IndexOutOfRangeException();
 
-                return ref Unsafe.Add(ref _dataSpan.GetPinnableReference(), (nint)index);
+                return _data[index];
             }
         }
 
@@ -100,10 +96,10 @@ namespace KafkaExchanger
                 return false;
             }
 
-            public ref long Current
+            public long Current
             {
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                get => ref _array[_index];
+                get => _array[_index];
             }
         }
     }

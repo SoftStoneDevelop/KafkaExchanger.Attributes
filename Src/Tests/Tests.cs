@@ -16,7 +16,7 @@ namespace Tests
             }
 
             long i = 0;
-            foreach (ref long item in array)
+            foreach (long item in array)
             {
                 Assert.That(item, Is.EqualTo(i));
                 i++;
