@@ -183,7 +183,7 @@ namespace KafkaExchanger
             return _data[_minHorizonIndex + 1];
         }
 
-        public void ClearFinished()
+        public HorizonInfo ClearFinished()
         {
             var canFree = CanFree();
             if (canFree == 0)
@@ -191,8 +191,10 @@ namespace KafkaExchanger
                 throw new Exception("Nothing to clear");
             }
 
+            var result = _data[_minHorizonIndex + 1];
             Array.Clear(array: _data, index: _minHorizonIndex + 1, length: canFree);
             _size -= canFree;
+            return result;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

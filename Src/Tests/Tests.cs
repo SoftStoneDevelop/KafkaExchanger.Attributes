@@ -63,24 +63,25 @@ namespace Tests
             }
 
             Exception ex;
+            HorizonInfo senior—leared;
             for (int i = 0; i < 150; i++)
             {
-                ex = Assert.Throws<Exception>(array.ClearFinished);
+                ex = Assert.Throws<Exception>(() => { array.ClearFinished(); });
                 Assert.That(ex.Message, Is.EqualTo("Nothing to clear"));
 
                 array.Finish(i);
-                array.ClearFinished();
-
+                senior—leared = array.ClearFinished();
+                Assert.That(senior—leared.HorizonId, Is.EqualTo(i));
                 Assert.That(array.Size, Is.EqualTo(999 - i));
 
-                ex = Assert.Throws<Exception>(array.ClearFinished);
+                ex = Assert.Throws<Exception>(() => { array.ClearFinished(); });
                 Assert.That(ex.Message, Is.EqualTo("Nothing to clear"));
             }
 
             int sizeExpect;
             for (int i = 151; i < 1000; i++)
             {
-                ex = Assert.Throws<Exception>(array.ClearFinished);
+                ex = Assert.Throws<Exception>(() => { array.ClearFinished(); });
                 Assert.That(ex.Message, Is.EqualTo("Nothing to clear"));
 
                 sizeExpect = array.Size;
@@ -88,15 +89,16 @@ namespace Tests
 
                 Assert.That(array.Size, Is.EqualTo(sizeExpect));
 
-                ex = Assert.Throws<Exception>(array.ClearFinished);
+                ex = Assert.Throws<Exception>(() => { array.ClearFinished(); });
                 Assert.That(ex.Message, Is.EqualTo("Nothing to clear"));
             }
 
             array.Finish(150);
-            array.ClearFinished();
+            senior—leared = array.ClearFinished();
+            Assert.That(senior—leared.HorizonId, Is.EqualTo(999));
 
             Assert.That(array.Size, Is.EqualTo(0));
-            ex = Assert.Throws<Exception>(array.ClearFinished);
+            ex = Assert.Throws<Exception>(() => { array.ClearFinished(); });
             Assert.That(ex.Message, Is.EqualTo("Nothing to clear"));
         }
 
