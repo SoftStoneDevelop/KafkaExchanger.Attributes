@@ -197,5 +197,22 @@ namespace Tests
                 }
             }
         }
+
+        [Test]
+        public void Finish()
+        {
+            var array = new HorizonStorage();
+            for (long j = 0; j < 1000; j++)
+            {
+                array.Add(new HorizonInfo(j));
+            }
+
+            Assert.That(array.AfterHorizon(), Is.Null);
+            for (int j = 0; j < 1000; j++)
+            {
+                var finished = array.Finish(j);
+                Assert.That(finished, Is.EqualTo(array[999 - j]));
+            }
+        }
     }
 }

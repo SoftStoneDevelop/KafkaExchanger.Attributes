@@ -143,14 +143,15 @@ namespace KafkaExchanger
             throw new Exception("HorizonId not found");
         }
 
-        public void Finish(long horizonId)
+        public HorizonInfo Finish(long horizonId)
         {
             var index = Find(horizonId);
-            _data[index].Finish();
+            var result = _data[index];
+            result.Finish();
 
             if(index != _minHorizonIndex)
             {
-                return;
+                return result;
             }
 
             int i;
@@ -163,6 +164,7 @@ namespace KafkaExchanger
             }
 
             _minHorizonIndex = i;
+            return result;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
