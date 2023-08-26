@@ -171,6 +171,16 @@ namespace KafkaExchanger
             return _size - (_minHorizonIndex + 1);
         }
 
+        public HorizonInfo AfterHorizon()
+        {
+            if(_size == 0 || _size == _minHorizonIndex + 1)
+            {
+                return null;
+            }
+
+            return _data[_minHorizonIndex + 1];
+        }
+
         public void ClearFinished()
         {
             var canFree = CanFree();

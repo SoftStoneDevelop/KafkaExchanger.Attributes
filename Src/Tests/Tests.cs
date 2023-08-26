@@ -158,5 +158,44 @@ namespace Tests
                 }
             }
         }
+
+        [Test]
+        public void AfterHorizon()
+        {
+            var array = new HorizonStorage();
+            for (long j = 0; j < 1000; j++)
+            {
+                array.Add(new HorizonInfo(j));
+            }
+
+            Assert.That(array.AfterHorizon(), Is.Null);
+            for (long j = 0; j < 1000; j++)
+            {
+                if (j % 2 == 0)
+                {
+                    array.Finish(j);
+                }
+            }
+
+            for (int j = 0; j < 1000; j++)
+            {
+                if (j % 2 == 1)
+                {
+                    array.Finish(j);
+                    if(j == 999)
+                    {
+                        Assert.That(array.AfterHorizon(), Is.EqualTo(array[0]));
+                    }
+                    else
+                    {
+                        Assert.That(array.AfterHorizon(), Is.EqualTo(array[(999 - j) - 1]));
+                    }
+                }
+                else
+                {
+                    Assert.That(array.AfterHorizon(), Is.EqualTo(array[999 - j]));
+                }
+            }
+        }
     }
 }
