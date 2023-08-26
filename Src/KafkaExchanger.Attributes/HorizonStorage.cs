@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
 
 namespace KafkaExchanger
@@ -10,18 +11,56 @@ namespace KafkaExchanger
             long horizonId
             )
         {
-            HorizonId = horizonId;
+            _horizonId = horizonId;
         }
 
-        public long HorizonId { get; init; }
+        public long HorizonId 
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => _horizonId;
+        }
+        private long _horizonId;
 
-        public List<Confluent.Kafka.TopicPartitionOffset> TopicPartitionOffset { get; } = new();
+        public bool Finished
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => _finished; 
+        }
+        private bool _finished;
+
+        public ReadOnlyCollection<Confluent.Kafka.TopicPartitionOffset> TopicPartitionOffset 
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => _topicPartitionOffset.AsReadOnly(); 
+        }
+        private List<Confluent.Kafka.TopicPartitionOffset> _topicPartitionOffset;
+
+        public void AddOffset(Confluent.Kafka.TopicPartitionOffset offset)
+        {
+            if(_finished)
+            {
+                throw new InvalidOperationException("Can not add offset into finished horizon");
+            }
+
+            _topicPartitionOffset ??= new();
+            _topicPartitionOffset.Add(offset);
+        }
+
+        public void Finish()
+        {
+            _finished = true;
+        }
     }
 
     public class HorizonStorage
     {
         private HorizonInfo[] _data;
         private int _size;
+
+        /// <summary>
+        /// -1 means all storage not contain unfinished
+        /// </summary>
+        private int _minHorizonIndex = -1;
 
         public HorizonStorage()
         {
@@ -64,7 +103,13 @@ namespace KafkaExchanger
                 _data[i + 1] = _data[i];
             }
 
+            if (_size != 0 && i + 1 == _size)
+            {
+                throw new Exception("The new horizon must be higher than the existing one");
+            }
+
             _data[i + 1] = item;
+            _minHorizonIndex++;
             _size++;
 
             return i + 1;
@@ -74,6 +119,7 @@ namespace KafkaExchanger
         {
             int lo = 0;
             int hi = _size - 1;
+
             while (lo <= hi)
             {
                 int i = lo + ((hi - lo) >> 1);
@@ -97,28 +143,44 @@ namespace KafkaExchanger
             throw new Exception("HorizonId not found");
         }
 
-        public int CanFree(int index)
+        public void Finish(long horizonId)
         {
-            return _size - index;
+            var index = Find(horizonId);
+            _data[index].Finish();
+
+            if(index != _minHorizonIndex)
+            {
+                return;
+            }
+
+            int i;
+            for (i = _minHorizonIndex - 1; i >= 0; i--)
+            {
+                if (!_data[i].Finished)
+                {
+                    break;
+                }
+            }
+
+            _minHorizonIndex = i;
         }
 
-        public long Clear(int index)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int CanFree()
         {
-            if(_size == 0)
+            return _size - (_minHorizonIndex + 1);
+        }
+
+        public void ClearFinished()
+        {
+            var canFree = CanFree();
+            if (canFree == 0)
             {
-                throw new Exception("Storage is empty");
+                throw new Exception("Nothing to clear");
             }
 
-            var horizonId = _data[index].HorizonId;
-            _size = index;
-
-            var freeLength = _data.Length - _size;
-            if (freeLength > 0)
-            {
-                Array.Clear(array: _data, index: _size, length: freeLength);
-            }
-
-            return horizonId;
+            Array.Clear(array: _data, index: _minHorizonIndex + 1, length: canFree);
+            _size -= canFree;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

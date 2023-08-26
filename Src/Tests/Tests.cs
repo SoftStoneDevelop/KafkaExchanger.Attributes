@@ -54,7 +54,7 @@ namespace Tests
         }
 
         [Test]
-        public void ClearAfter()
+        public void ClearFinished()
         {
             var array = new HorizonStorage();
             for (long j = 0; j < 1000; j++)
@@ -62,15 +62,42 @@ namespace Tests
                 array.Add(new HorizonInfo(j));
             }
 
-            for (int i = 0; i < 1000; i++)
+            Exception ex;
+            for (int i = 0; i < 150; i++)
             {
-                var indx = array.Find(i);
-                array.Clear(indx);
+                ex = Assert.Throws<Exception>(array.ClearFinished);
+                Assert.That(ex.Message, Is.EqualTo("Nothing to clear"));
+
+                array.Finish(i);
+                array.ClearFinished();
+
                 Assert.That(array.Size, Is.EqualTo(999 - i));
+
+                ex = Assert.Throws<Exception>(array.ClearFinished);
+                Assert.That(ex.Message, Is.EqualTo("Nothing to clear"));
             }
 
-            var ex = Assert.Throws<Exception>(() => { array.Clear(0); });
-            Assert.That(ex.Message, Is.EqualTo("Storage is empty"));
+            int sizeExpect;
+            for (int i = 151; i < 1000; i++)
+            {
+                ex = Assert.Throws<Exception>(array.ClearFinished);
+                Assert.That(ex.Message, Is.EqualTo("Nothing to clear"));
+
+                sizeExpect = array.Size;
+                array.Finish(i);
+
+                Assert.That(array.Size, Is.EqualTo(sizeExpect));
+
+                ex = Assert.Throws<Exception>(array.ClearFinished);
+                Assert.That(ex.Message, Is.EqualTo("Nothing to clear"));
+            }
+
+            array.Finish(150);
+            array.ClearFinished();
+
+            Assert.That(array.Size, Is.EqualTo(0));
+            ex = Assert.Throws<Exception>(array.ClearFinished);
+            Assert.That(ex.Message, Is.EqualTo("Nothing to clear"));
         }
 
         [Test]
@@ -102,9 +129,33 @@ namespace Tests
 
             for (long j = 0; j < 1000; j++)
             {
-                var index = array.Find(j);
-                var canFreeCount = array.CanFree(index);
-                Assert.That(canFreeCount, Is.EqualTo(j + 1));
+                if(j % 2 == 0)
+                {
+                    array.Finish(j);
+                }
+            }
+
+            var canFree = 1;
+            for (long j = 0; j < 1000; j++)
+            {
+                if (j % 2 == 1)
+                {
+                    Assert.That(array.CanFree(), Is.EqualTo(canFree));
+                    array.Finish(j);
+                    if(j == 999)
+                    {
+                        canFree += 1;
+                    }
+                    else
+                    {
+                        canFree += 2;
+                    }
+                    Assert.That(array.CanFree(), Is.EqualTo(canFree));
+                }
+                else
+                {
+                    Assert.That(array.CanFree(), Is.EqualTo(canFree));
+                }
             }
         }
     }
