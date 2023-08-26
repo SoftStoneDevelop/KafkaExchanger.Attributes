@@ -28,27 +28,17 @@ namespace KafkaExchanger
         }
         private bool _finished;
 
-        public ReadOnlyCollection<Confluent.Kafka.TopicPartitionOffset> TopicPartitionOffset 
+        public Confluent.Kafka.TopicPartitionOffset[] TopicPartitionOffset
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => _topicPartitionOffset.AsReadOnly(); 
+            get => _offsets; 
         }
-        private List<Confluent.Kafka.TopicPartitionOffset> _topicPartitionOffset;
+        private Confluent.Kafka.TopicPartitionOffset[] _offsets;
 
-        public void AddOffset(Confluent.Kafka.TopicPartitionOffset offset)
-        {
-            if(_finished)
-            {
-                throw new InvalidOperationException("Can not add offset into finished horizon");
-            }
-
-            _topicPartitionOffset ??= new();
-            _topicPartitionOffset.Add(offset);
-        }
-
-        public void Finish()
+        public void Finish(Confluent.Kafka.TopicPartitionOffset[] offsets)
         {
             _finished = true;
+            _offsets = offsets;
         }
     }
 
@@ -143,11 +133,11 @@ namespace KafkaExchanger
             throw new Exception("HorizonId not found");
         }
 
-        public HorizonInfo Finish(long horizonId)
+        public HorizonInfo Finish(long horizonId, Confluent.Kafka.TopicPartitionOffset[] offsets)
         {
             var index = Find(horizonId);
             var result = _data[index];
-            result.Finish();
+            result.Finish(offsets);
 
             if(index != _minHorizonIndex)
             {

@@ -69,7 +69,7 @@ namespace Tests
                 ex = Assert.Throws<Exception>(() => { array.ClearFinished(); });
                 Assert.That(ex.Message, Is.EqualTo("Nothing to clear"));
 
-                array.Finish(i);
+                array.Finish(i, null);
                 senior—leared = array.ClearFinished();
                 Assert.That(senior—leared.HorizonId, Is.EqualTo(i));
                 Assert.That(array.Size, Is.EqualTo(999 - i));
@@ -85,7 +85,7 @@ namespace Tests
                 Assert.That(ex.Message, Is.EqualTo("Nothing to clear"));
 
                 sizeExpect = array.Size;
-                array.Finish(i);
+                array.Finish(i, null);
 
                 Assert.That(array.Size, Is.EqualTo(sizeExpect));
 
@@ -93,7 +93,7 @@ namespace Tests
                 Assert.That(ex.Message, Is.EqualTo("Nothing to clear"));
             }
 
-            array.Finish(150);
+            array.Finish(150, null);
             senior—leared = array.ClearFinished();
             Assert.That(senior—leared.HorizonId, Is.EqualTo(999));
 
@@ -133,7 +133,7 @@ namespace Tests
             {
                 if(j % 2 == 0)
                 {
-                    array.Finish(j);
+                    array.Finish(j, null);
                 }
             }
 
@@ -143,7 +143,7 @@ namespace Tests
                 if (j % 2 == 1)
                 {
                     Assert.That(array.CanFree(), Is.EqualTo(canFree));
-                    array.Finish(j);
+                    array.Finish(j, null);
                     if(j == 999)
                     {
                         canFree += 1;
@@ -175,7 +175,7 @@ namespace Tests
             {
                 if (j % 2 == 0)
                 {
-                    array.Finish(j);
+                    array.Finish(j, null);
                 }
             }
 
@@ -183,7 +183,7 @@ namespace Tests
             {
                 if (j % 2 == 1)
                 {
-                    array.Finish(j);
+                    array.Finish(j, null);
                     if(j == 999)
                     {
                         Assert.That(array.AfterHorizon(), Is.EqualTo(array[0]));
@@ -212,7 +212,7 @@ namespace Tests
             Assert.That(array.AfterHorizon(), Is.Null);
             for (int j = 0; j < 1000; j++)
             {
-                var finished = array.Finish(j);
+                var finished = array.Finish(j, null);
                 Assert.That(finished, Is.EqualTo(array[999 - j]));
             }
         }
