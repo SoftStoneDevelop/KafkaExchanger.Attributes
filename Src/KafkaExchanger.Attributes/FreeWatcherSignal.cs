@@ -17,18 +17,38 @@ namespace KafkaExchanger
         public void SignalFree()
         {
             var result = Interlocked.Increment(ref _haveFree);
-            if (result == 1)
+            if (result != 1)
+            {
+                return;
+            }
+
+            while (true)
             {
                 var tcs = m_tcs;
-                tcs.TrySetResult(true);
-                Interlocked.CompareExchange(ref m_tcs, new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously), tcs);
+                if (tcs.TrySetResult(true))
+                {
+                    break;
+                }
             }
         }
         private volatile TaskCompletionSource<bool> m_tcs;
 
         public void SignalStuck()
         {
-            Interlocked.Decrement(ref _haveFree);
+            var result = Interlocked.Decrement(ref _haveFree);
+            if(result != 0)
+            {
+                return;
+            }
+
+            while (true)
+            {
+                var tcs = m_tcs;
+                if (!tcs.Task.IsCompleted || Interlocked.CompareExchange(ref m_tcs, new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously), tcs) == tcs)
+                {
+                    break;
+                }
+            }
         }
 
         public Task WaitFree()
