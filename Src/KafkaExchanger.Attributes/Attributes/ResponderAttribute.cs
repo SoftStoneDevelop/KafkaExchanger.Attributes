@@ -6,11 +6,10 @@ namespace KafkaExchanger.Attributes
     public sealed class ResponderAttribute : Attribute
     {
         public ResponderAttribute(
-            bool useLogger = true,
-            uint commitAfter = 1,
+            bool useLogger = false,
             bool checkCurrentState = false,
-            bool useAfterSendResponse = false,
-            bool useAfterCommit = false
+            bool afterSend = false,
+            bool afterCommit = false
             )
         {
         }
