@@ -5,7 +5,7 @@ namespace KafkaExchanger
 {
     public class InFlyView
     {
-        private readonly int _current;
+        private int _current;
         private readonly int _head;
         private readonly int _tail;
         private readonly int _size;
