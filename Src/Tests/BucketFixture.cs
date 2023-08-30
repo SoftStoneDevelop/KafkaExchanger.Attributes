@@ -5,7 +5,9 @@ using System.Collections.Generic;
 
 namespace Tests
 {
-    public class BucketTests
+    [TestFixture]
+    [Parallelizable(ParallelScope.All)]
+    public class BucketFixture
     {
         [Test]
         public void Add()
