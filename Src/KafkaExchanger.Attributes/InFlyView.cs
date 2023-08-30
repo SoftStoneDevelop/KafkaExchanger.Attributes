@@ -5,10 +5,10 @@ namespace KafkaExchanger
 {
     public class InFlyView
     {
-        private int _current;
-        private int _head;
-        private int _tail;
-        private int _size;
+        private readonly int _current;
+        private readonly int _head;
+        private readonly int _tail;
+        private readonly int _size;
 
         private readonly Bucket[] _buckets;
 
