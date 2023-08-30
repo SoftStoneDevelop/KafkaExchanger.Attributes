@@ -31,8 +31,6 @@ namespace KafkaExchanger
             get => _size < _data.Length;
         }
 
-        public bool BucketExists { get; set; }
-
         public int BucketId
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -118,6 +116,7 @@ namespace KafkaExchanger
             Array.Clear(_data);
             _size = 0;
             _finished = 0;
+            BucketId = -1;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

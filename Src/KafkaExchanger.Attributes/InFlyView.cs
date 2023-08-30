@@ -33,22 +33,67 @@ namespace KafkaExchanger
             get => _size;
         }
 
-        public int Tail
+        public int GlobalTailIndex
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => _tail;
         }
 
-        public int Head
+        public int GlobalHeadIndex
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => _head;
         }
 
-        public int Current
+        public int GlobalCurrentIndex
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => _current;
+        }
+
+        public Bucket Current
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => _buckets[_current];
+        }
+
+        public void ClusterView()
+        {
+            throw new NotImplementedException();
+        }
+
+        public Bucket AfterCurrentPeek()
+        {
+            throw new NotImplementedException();
+        }
+
+        public int CurrentIndexLocal()
+        {
+            if (_tail == _head)
+            {
+                return 0;
+            }
+            else
+            if(_tail > _head)
+            {
+                return _current - _head;
+            }
+            else
+            {
+                if(_current == _head)
+                {
+                    return 0;
+                }
+                else
+                if (_current > _head)
+                {
+                    return _current - _head;
+                }
+                else
+                { 
+                    return (_buckets.Length - _head) + _current;
+                }
+            }
         }
 
         public bool TryAdd(MessageInfo messageInfo)

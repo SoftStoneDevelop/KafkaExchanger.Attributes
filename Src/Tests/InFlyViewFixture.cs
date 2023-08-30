@@ -70,8 +70,8 @@ namespace Tests
                 }
 
                 Assert.That(view.Size, Is.EqualTo(fullBucket.Length));
-                Assert.That(view.Head, Is.EqualTo(fullBucket[0]));
-                Assert.That(view.Tail, Is.EqualTo(fullBucket[^1]));
+                Assert.That(view.GlobalHeadIndex, Is.EqualTo(fullBucket[0]));
+                Assert.That(view.GlobalTailIndex, Is.EqualTo(fullBucket[^1]));
                 fullCurrent.Add(full);
             }
         }
