@@ -37,6 +37,8 @@ namespace KafkaExchanger
             set;
         } = -1;
 
+        public MessageInfo[] Messages => _data;
+
         /// <summary>
         /// Add new horizon info
         /// </summary>
