@@ -5,8 +5,6 @@ namespace KafkaExchanger
 {
     public class Bucket
     {
-        private readonly int _maxItems;
-
         private MessageInfo[] _data;
         private int _size;
 
@@ -14,9 +12,8 @@ namespace KafkaExchanger
 
         public Bucket(int maxItems)
         {
-            _data = new MessageInfo[10];
+            _data = new MessageInfo[maxItems];
             _size = 0;
-            _maxItems = maxItems;
         }
 
         public int Size
@@ -38,7 +35,7 @@ namespace KafkaExchanger
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set;
-        }
+        } = -1;
 
         /// <summary>
         /// Add new horizon info
@@ -47,14 +44,9 @@ namespace KafkaExchanger
         /// <exception cref="Exception">If item already contains</exception>
         public void Add(MessageInfo item)
         {
-            if (_size >= _maxItems)
-            {
-                throw new Exception("Item limit exceeded");
-            }
-
             if (_size >= _data.Length)
             {
-                IncreaseCapacity();
+                throw new Exception("Item limit exceeded");
             }
 
             item.Id = _size++;
@@ -108,23 +100,35 @@ namespace KafkaExchanger
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool CanFree()
         {
-            return _maxItems == _finished;
+            return _size == _data.Length && _data.Length == _finished;
         }
 
-        public void Clear()
+        public MessageInfo[] ResetMessages()
         {
-            Array.Clear(_data);
+            var result = _data;
+            _data = new MessageInfo[_data.Length];
+            _size = 0;
+            _finished = 0;
+            return result;
+        }
+
+        public MessageInfo[] SetMessages(Bucket bucket)
+        {
+            var result = _data;
+            _data = bucket._data;
+            _size = bucket._size;
+            _finished = bucket._finished;
+
+            bucket.Clear();
+            return result;
+        }
+
+        private void Clear()
+        {
+            _data = null;
             _size = 0;
             _finished = 0;
             BucketId = -1;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void IncreaseCapacity()
-        {
-            var oldData = _data;
-            _data = new MessageInfo[oldData.Length * 2];
-            oldData.CopyTo(_data, 0);
         }
 
         public MessageInfo this[int index]

@@ -29,7 +29,7 @@ namespace Tests
         }
 
         [Test]
-        public void Clear()
+        public void ResetMessages()
         {
             var storage = new Bucket(maxItems: 100);
             for (long j = 0; j < 100; j++)
@@ -38,7 +38,9 @@ namespace Tests
             }
 
             Assert.That(storage.Size, Is.EqualTo(100));
-            storage.Clear();
+            var messages = storage.ResetMessages();
+            Assert.That(messages, Is.Not.Null);
+            Assert.That(messages, Has.Length.EqualTo(100));
             Assert.That(storage.Size, Is.EqualTo(0));
         }
 
