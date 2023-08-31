@@ -56,7 +56,7 @@ namespace Tests
                 infos.Add(info);
             }
 
-            for (long j = 0; j < 100; j++)
+            for (int j = 0; j < 100; j++)
             {
                 var index = storage.Find(j);
                 Assert.That(index, Is.EqualTo(j));

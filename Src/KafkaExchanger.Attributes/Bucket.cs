@@ -55,7 +55,7 @@ namespace KafkaExchanger
             _data[item.Id] = item;
         }
 
-        public int Find(long horizonId)
+        public int Find(int messageId)
         {
             int lo = 0;
             int hi = _size - 1;
@@ -63,7 +63,7 @@ namespace KafkaExchanger
             while (lo <= hi)
             {
                 int i = lo + ((hi - lo) >> 1);
-                int order = _data[i].Id.CompareTo(horizonId);
+                int order = _data[i].Id.CompareTo(messageId);
 
                 if (order == 0)
                 {
@@ -83,9 +83,9 @@ namespace KafkaExchanger
             throw new Exception("Id not found");
         }
 
-        public MessageInfo Finish(long horizonId, Confluent.Kafka.TopicPartitionOffset[] offsets)
+        public MessageInfo Finish(int messageId, Confluent.Kafka.TopicPartitionOffset[] offsets)
         {
-            var index = Find(horizonId);
+            var index = Find(messageId);
             var result = _data[index];
 
             if (result.Finished)
