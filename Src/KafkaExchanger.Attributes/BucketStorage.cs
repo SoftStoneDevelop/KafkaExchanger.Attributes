@@ -38,7 +38,16 @@ namespace KafkaExchanger
                 );
         }
 
-        public async ValueTask<object> Push(MessageInfo messageInfo)
+        public class PushResult
+        {
+            public bool NeedStart { get; set; }
+
+            public object Process { get; set; }
+
+            public int BucketId { get; set; }
+        }
+
+        public async ValueTask<PushResult> Push(MessageInfo messageInfo)
         {
             if(_delayBucketsLast != null)
             {
@@ -52,9 +61,15 @@ namespace KafkaExchanger
             }
             else
             {
-                if (await _inFly.TryAdd(messageInfo))
+                var tryAddResult = await _inFly.TryAdd(messageInfo);
+                if (tryAddResult.IsSuccess)
                 {
-                    return messageInfo.TakeProcess();
+                    return new PushResult()
+                    {
+                        NeedStart = false,
+                        Process = messageInfo.TakeProcess(),
+                        BucketId = tryAddResult.BucketId
+                    };
                 }
 
                 _delayBucketsLast = new Bucket(_itemsInBucket);
@@ -62,7 +77,10 @@ namespace KafkaExchanger
                 _delayBuckets.Enqueue(_delayBucketsLast);
             }
 
-            return null;
+            return new PushResult() 
+            {
+                NeedStart = false
+            };
         }
 
         public bool TryPop(

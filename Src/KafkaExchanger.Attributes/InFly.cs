@@ -94,28 +94,50 @@ namespace KafkaExchanger
             return true;
         }
 
-        public async ValueTask<bool> TryAdd(MessageInfo messageInfo)
+        public class AddResult
+        {
+            public bool IsSuccess { get; set; }
+
+            public int BucketId { get; set; }
+        }
+
+        public async ValueTask<AddResult> TryAdd(MessageInfo messageInfo)
         {
             if (_buckets[_current].HavePlace)
             {
                 _buckets[_current].Add(messageInfo);
-                return true;
+                return new AddResult
+                {
+                    IsSuccess = true,
+                    BucketId = _buckets[_current].BucketId
+                };
             }
 
             if (TryMoveNext())
             {
                 _buckets[_current].Add(messageInfo);
-                return true;
+                return new AddResult
+                {
+                    IsSuccess = true,
+                    BucketId = _buckets[_current].BucketId
+                };
             }
 
             if (!await TryExpand())
             {
-                return false;
+                return new AddResult
+                {
+                    IsSuccess = false
+                };
             }
 
             TryMoveNext();
             _buckets[_current].Add(messageInfo);
-            return true;
+            return new AddResult
+            {
+                IsSuccess = true,
+                BucketId = _buckets[_current].BucketId
+            };
         }
 
         public bool TryPop(
