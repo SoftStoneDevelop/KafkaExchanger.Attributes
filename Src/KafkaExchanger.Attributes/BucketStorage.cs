@@ -86,19 +86,24 @@ namespace KafkaExchanger
         public bool TryPop(
             out int bucketId,
             out MessageInfo[] canFreeInfos,
-            out Bucket addedNewInFly
+            out MessageInfo[] needInitInfos
             )
         {
-            var needPop = _delayBuckets.TryPeek(out addedNewInFly);
+            var needPop = _delayBuckets.TryPeek(out var addedNewInFly);
             var result = _inFly.TryPop(addedNewInFly, out bucketId, out canFreeInfos);
 
             if(result && needPop)
             {
+                needInitInfos = addedNewInFly.Messages;
                 _delayBuckets.Dequeue();
                 if(_delayBuckets.Count == 0)
                 {
                     _delayBucketsLast = null;
                 }
+            }
+            else
+            {
+                needInitInfos = null;
             }
 
             return result;
