@@ -4,7 +4,7 @@ namespace KafkaExchanger
 {
     public class MessageInfo
     {
-        public long Id
+        public int Id
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get;
