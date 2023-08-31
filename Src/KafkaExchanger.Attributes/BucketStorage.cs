@@ -38,7 +38,7 @@ namespace KafkaExchanger
                 );
         }
 
-        public async ValueTask Push(MessageInfo messageInfo)
+        public async ValueTask<object> Push(MessageInfo messageInfo)
         {
             if(_delayBucketsLast != null)
             {
@@ -54,13 +54,15 @@ namespace KafkaExchanger
             {
                 if (await _inFly.TryAdd(messageInfo))
                 {
-                    return;
+                    return messageInfo.TakeProcess();
                 }
 
                 _delayBucketsLast = new Bucket(_itemsInBucket);
                 _delayBucketsLast.Add(messageInfo);
                 _delayBuckets.Enqueue(_delayBucketsLast);
             }
+
+            return null;
         }
 
         public bool TryPop(
