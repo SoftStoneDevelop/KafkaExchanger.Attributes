@@ -66,7 +66,7 @@ namespace KafkaExchanger
                 {
                     return new PushResult()
                     {
-                        NeedStart = false,
+                        NeedStart = true,
                         Process = messageInfo.TakeProcess(),
                         BucketId = tryAddResult.BucketId
                     };
