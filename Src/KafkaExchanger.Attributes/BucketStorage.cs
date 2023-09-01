@@ -137,11 +137,12 @@ namespace KafkaExchanger
                 var bucket = _buckets[i];
                 if(bucket.BucketId == bucketId)
                 {
-                    bucket.SetOffset(guid, offsetId, offset);   
+                    bucket.SetOffset(guid, offsetId, offset);
+                    return;
                 }
             }
 
-            throw new InvalidOperationException();
+            throw new InvalidOperationException("Bucket not found");
         }
 
         public void Finish(
@@ -155,10 +156,11 @@ namespace KafkaExchanger
                 if (bucket.BucketId == bucketId)
                 {
                     bucket.Finish(guid);
+                    return;
                 }
             }
 
-            throw new InvalidOperationException();
+            throw new InvalidOperationException("Bucket not found");
         }
 
         private bool TryMoveNext()
