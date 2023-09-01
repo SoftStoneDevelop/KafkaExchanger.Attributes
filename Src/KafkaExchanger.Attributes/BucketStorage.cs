@@ -196,19 +196,5 @@ namespace KafkaExchanger
             result.Clear();
             return result;
         }
-
-        public Bucket Find(int bucketId)
-        {
-            for (int i = 0; i < _buckets.Length; i++)
-            {
-                var bucket = _buckets[i];
-                if (bucket.BucketId == bucketId)
-                {
-                    return bucket;
-                }
-            }
-
-            throw new Exception("Bucket not found");
-        }
     }
 }
