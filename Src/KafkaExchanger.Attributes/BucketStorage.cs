@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace KafkaExchanger
@@ -194,7 +193,7 @@ namespace KafkaExchanger
             result.Add(current);
 
             var scopeMax = current.MaxOffset;
-            var currentId = _head++;
+            var currentId = _head + 1;
             if(currentId == _buckets.Length)
             {
                 currentId = 0;
