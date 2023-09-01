@@ -9,18 +9,22 @@ namespace KafkaExchanger
         private readonly Func<int, ValueTask> _addNewBucket;
         private readonly int _itemsInBucket;
         private readonly int _inputs;
+        private readonly int _inFlyLimit;
 
         private int _current;
         private int _head;
+        private int _inUse;
 
         private Bucket[] _buckets;
 
         public BucketStorage(
+            int inFlyLimit,
             int inputs,
             int itemsInBucket,
             Func<int, ValueTask> addNewBucket
             )
         {
+            _inFlyLimit = inFlyLimit;
             _inputs = inputs;
             _addNewBucket = addNewBucket;
             _itemsInBucket = Math.Max(itemsInBucket, 1);
@@ -106,6 +110,8 @@ namespace KafkaExchanger
 
             TryMoveNext();
             _buckets[_current].Add(guid, messageInfo);
+
+            _inUse++;
             return _buckets[_current].BucketId;
         }
 
@@ -122,9 +128,10 @@ namespace KafkaExchanger
             {
                 _head = 0;
             }
+            _inUse--;
         }
 
-        public void SetOffset(
+        public bool SetOffset(
             int bucketId,
             string guid,
             int offsetId,
@@ -137,7 +144,12 @@ namespace KafkaExchanger
                 if(bucket.BucketId == bucketId)
                 {
                     bucket.SetOffset(guid, offsetId, offset);
-                    return;
+                    if(_inUse > _inFlyLimit)
+                    {
+                        return OnlyWait();
+                    }
+
+                    return false;
                 }
             }
 
@@ -233,6 +245,55 @@ namespace KafkaExchanger
 
             result.Clear();
             return result;
+        }
+
+        public bool OnlyWait()
+        {
+            var current = _buckets[_head];
+            if (!current.OnlyWaitFinish())
+            {
+                return false;
+            }
+
+            var scopeMax = current.MaxOffset;
+            var currentId = _head + 1;
+            if (currentId == _buckets.Length)
+            {
+                currentId = 0;
+            }
+
+            current = _buckets[currentId];
+            if (current.IsEmpty())
+            {
+                return false;
+            }
+
+            while (current.OnlyWaitFinish() && currentId != _head)
+            {
+                var minOffsets = current.MinOffset;
+                var canFree = false;
+                for (int j = 0; j < scopeMax.Length; j++)
+                {
+                    canFree &= minOffsets[j].Offset.Value > scopeMax[j].Offset.Value;
+                }
+
+                if (canFree)
+                {
+                    return true;
+                }
+                else
+                {
+                    scopeMax = current.MaxOffset;
+                }
+
+                if (++currentId == _buckets.Length)
+                {
+                    currentId = 0;
+                }
+                current = _buckets[currentId];
+            }
+
+            return false;
         }
     }
 }

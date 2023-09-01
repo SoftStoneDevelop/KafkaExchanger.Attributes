@@ -10,6 +10,7 @@ namespace KafkaExchanger
         private int _maxSize;
 
         private int _finished = 0;
+        private int _offsetsFull = 0;
 
         public Bucket(int maxItems, int offsetSize)
         {
@@ -90,6 +91,16 @@ namespace KafkaExchanger
             {
                 _maxOffset[offsetId] = offset;
             }
+
+            var allInputDone = false;
+            for (int i = 0; i < result.TopicPartitionOffset.Length; i++)
+            {
+                allInputDone &= result.TopicPartitionOffset[i] != null;
+            }
+            if(allInputDone)
+            {
+                _offsetsFull++;
+            }
         }
 
         public MessageInfo Finish(string guid)
@@ -116,6 +127,12 @@ namespace KafkaExchanger
             return _maxSize == _data.Count && _maxSize == _finished;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool OnlyWaitFinish()
+        {
+            return _offsetsFull == _maxSize;
+        }
+
         public bool IsEmpty()
         {
             return _data.Count == 0;
@@ -127,6 +144,7 @@ namespace KafkaExchanger
             Array.Clear(_minOffset);
             Array.Clear(_maxOffset);
             _finished = 0;
+            _offsetsFull = 0;
         }
     }
 }
