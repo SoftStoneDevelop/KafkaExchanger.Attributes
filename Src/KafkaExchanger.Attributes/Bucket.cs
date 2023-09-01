@@ -1,31 +1,26 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 namespace KafkaExchanger
 {
     public class Bucket
     {
-        private MessageInfo[] _data;
-        private int _size;
+        private Dictionary<string, MessageInfo> _data;
+        private int _maxSize;
 
         private int _finished = 0;
 
         public Bucket(int maxItems)
         {
-            _data = new MessageInfo[maxItems];
-            _size = 0;
-        }
-
-        public int Size
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => _size;
+            _data = new Dictionary<string, MessageInfo>(maxItems);
+            _maxSize = maxItems;
         }
 
         public bool HavePlace
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => _size < _data.Length;
+            get => _data.Count < _maxSize;
         }
 
         public int BucketId
@@ -37,56 +32,29 @@ namespace KafkaExchanger
             set;
         } = -1;
 
-        public MessageInfo[] Messages => _data;
+        public Dictionary<string, MessageInfo> Messages => _data;
 
         /// <summary>
         /// Add new horizon info
         /// </summary>
         /// <returns>Index of new element in storage</returns>
         /// <exception cref="Exception">If item already contains</exception>
-        public void Add(MessageInfo item)
+        public void Add(string guid, MessageInfo item)
         {
-            if (_size >= _data.Length)
+            if (_data.Count == _maxSize)
             {
                 throw new Exception("Item limit exceeded");
             }
 
-            item.Id = _size++;
-            _data[item.Id] = item;
+            _data[guid] = item;
         }
 
-        public int Find(int messageId)
+        public MessageInfo Finish(string guid, Confluent.Kafka.TopicPartitionOffset[] offsets)
         {
-            int lo = 0;
-            int hi = _size - 1;
-
-            while (lo <= hi)
+            if (!_data.TryGetValue(guid, out var result))
             {
-                int i = lo + ((hi - lo) >> 1);
-                int order = _data[i].Id.CompareTo(messageId);
-
-                if (order == 0)
-                {
-                    return i;
-                }
-
-                if (order < 0)
-                {
-                    lo = i + 1;
-                }
-                else
-                {
-                    hi = i - 1;
-                }
+                throw new Exception("Guid not found");
             }
-
-            throw new Exception("Id not found");
-        }
-
-        public MessageInfo Finish(int messageId, Confluent.Kafka.TopicPartitionOffset[] offsets)
-        {
-            var index = Find(messageId);
-            var result = _data[index];
 
             if (result.Finished)
             {
@@ -102,23 +70,21 @@ namespace KafkaExchanger
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool CanFree()
         {
-            return _size == _data.Length && _data.Length == _finished;
+            return _maxSize == _data.Count && _maxSize == _finished;
         }
 
-        public MessageInfo[] ResetMessages()
+        public Dictionary<string, MessageInfo> ResetMessages()
         {
             var result = _data;
-            _data = new MessageInfo[_data.Length];
-            _size = 0;
+            _data = new Dictionary<string, MessageInfo>(_data.Count);
             _finished = 0;
             return result;
         }
 
-        public MessageInfo[] SetMessages(Bucket bucket)
+        public Dictionary<string, MessageInfo> SetMessages(Bucket bucket)
         {
             var result = _data;
             _data = bucket._data;
-            _size = bucket._size;
             _finished = bucket._finished;
 
             bucket.Clear();
@@ -128,55 +94,8 @@ namespace KafkaExchanger
         private void Clear()
         {
             _data = null;
-            _size = 0;
             _finished = 0;
             BucketId = -1;
-        }
-
-        public MessageInfo this[int index]
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                if (index >= _size)
-                    throw new IndexOutOfRangeException();
-
-                return _data[index];
-            }
-        }
-
-        public Bucket.Enumerator GetEnumerator() => new Bucket.Enumerator(this);
-
-        public ref struct Enumerator
-        {
-            private readonly Bucket _array;
-            private int _index;
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            internal Enumerator(Bucket array)
-            {
-                _array = array;
-                _index = -1;
-            }
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public bool MoveNext()
-            {
-                int index = _index + 1;
-                if (index < _array.Size)
-                {
-                    _index = index;
-                    return true;
-                }
-
-                return false;
-            }
-
-            public MessageInfo Current
-            {
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                get => _array[_index];
-            }
         }
     }
 }

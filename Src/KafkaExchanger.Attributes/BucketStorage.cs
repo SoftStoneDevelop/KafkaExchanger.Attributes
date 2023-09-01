@@ -47,7 +47,7 @@ namespace KafkaExchanger
             public int BucketId { get; set; }
         }
 
-        public async ValueTask<PushResult> Push(MessageInfo messageInfo)
+        public async ValueTask<PushResult> Push(string guid, MessageInfo messageInfo)
         {
             if(_delayBucketsLast != null)
             {
@@ -57,11 +57,11 @@ namespace KafkaExchanger
                     _delayBuckets.Enqueue(_delayBucketsLast);
                 }
 
-                _delayBucketsLast.Add(messageInfo);
+                _delayBucketsLast.Add(guid, messageInfo);
             }
             else
             {
-                var tryAddResult = await _inFly.TryAdd(messageInfo);
+                var tryAddResult = await _inFly.TryAdd(guid, messageInfo);
                 if (tryAddResult.IsSuccess)
                 {
                     return new PushResult()
@@ -73,7 +73,7 @@ namespace KafkaExchanger
                 }
 
                 _delayBucketsLast = new Bucket(_itemsInBucket);
-                _delayBucketsLast.Add(messageInfo);
+                _delayBucketsLast.Add(guid, messageInfo);
                 _delayBuckets.Enqueue(_delayBucketsLast);
             }
 
@@ -85,16 +85,21 @@ namespace KafkaExchanger
 
         public bool TryPop(
             out int bucketId,
-            out MessageInfo[] canFreeInfos,
-            out MessageInfo[] needInitInfos
+            out Dictionary<string, MessageInfo> canFreeInfos,
+            out Dictionary<string, MessageInfo> needInitInfos
             )
         {
             var needPop = _delayBuckets.TryPeek(out var addedNewInFly);
+            Dictionary<string, MessageInfo> temp = null;
+            if(needPop)
+            {
+                temp = addedNewInFly.Messages;
+            }
             var result = _inFly.TryPop(addedNewInFly, out bucketId, out canFreeInfos);
 
             if(result && needPop)
             {
-                needInitInfos = addedNewInFly.Messages;
+                needInitInfos = temp;
                 _delayBuckets.Dequeue();
                 if(_delayBuckets.Count == 0)
                 {
@@ -111,12 +116,12 @@ namespace KafkaExchanger
 
         public void Finish(
             int bucketId,
-            int messageId,
+            string guid,
             Confluent.Kafka.TopicPartitionOffset[] offsets
             )
         {
             var bucket = _inFly.Find(bucketId);
-            bucket.Finish(messageId, offsets);
+            bucket.Finish(guid, offsets);
         }
     }
 }

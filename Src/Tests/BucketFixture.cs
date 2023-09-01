@@ -12,78 +12,51 @@ namespace Tests
         [Test]
         public void Add()
         {
-            var storage = new Bucket(maxItems: 100);
+            var bucket = new Bucket(maxItems: 100);
             for (long j = 0; j < 100; j++)
             {
-                storage.Add(new MessageInfo());
+                bucket.Add(Guid.NewGuid().ToString(), new MessageInfo());
             }
 
-            long i = 0;
-            foreach (var info in storage)
-            {
-                Assert.That(info.Id, Is.EqualTo(i++));
-            }
-
-            var error = Assert.Throws<Exception>(() => storage.Add(new MessageInfo()));
+            var error = Assert.Throws<Exception>(() => bucket.Add(Guid.NewGuid().ToString(), new MessageInfo()));
             Assert.That(error.Message, Is.EqualTo("Item limit exceeded"));
         }
 
         [Test]
         public void ResetMessages()
         {
-            var storage = new Bucket(maxItems: 100);
+            var bucket = new Bucket(maxItems: 100);
             for (long j = 0; j < 100; j++)
             {
-                storage.Add(new MessageInfo());
+                bucket.Add(Guid.NewGuid().ToString(), new MessageInfo());
             }
 
-            Assert.That(storage.Size, Is.EqualTo(100));
-            var messages = storage.ResetMessages();
+            Assert.That(bucket.Messages.Count, Is.EqualTo(100));
+            var messages = bucket.ResetMessages();
             Assert.That(messages, Is.Not.Null);
-            Assert.That(messages, Has.Length.EqualTo(100));
-            Assert.That(storage.Size, Is.EqualTo(0));
-        }
-
-        [Test]
-        public void Find()
-        {
-            var storage = new Bucket(maxItems: 100);
-            var infos = new List<MessageInfo>(100);
-            for (long j = 0; j < 100; j++)
-            {
-                var info = new MessageInfo();
-                storage.Add(info);
-                infos.Add(info);
-            }
-
-            for (int j = 0; j < 100; j++)
-            {
-                var index = storage.Find(j);
-                Assert.That(index, Is.EqualTo(j));
-                Assert.That(infos[index].Id, Is.EqualTo(j));
-            }
+            Assert.That(messages, Has.Count.EqualTo(100));
+            Assert.That(bucket.Messages.Count, Is.EqualTo(0));
         }
 
         [Test]
         public void CanFree()
         {
             var storage = new Bucket(maxItems: 100);
-            var infos = new List<MessageInfo>(100);
+            var infos = new List<(string guid, MessageInfo info)>(100);
             for (long j = 0; j < 100; j++)
             {
+                var guid = Guid.NewGuid().ToString();
                 var info = new MessageInfo();
-                storage.Add(info);
-                infos.Add(info);
+                storage.Add(guid, info);
+                infos.Add((guid,info));
             }
 
             for (int j = 0; j < infos.Count; j++)
             {
-                var info = infos[j];
+                (string guid, _) = infos[j];
                 if(j % 2 == 0)
                 {
-                    Assert.That(info.Finished, Is.False);
-                    storage.Finish(info.Id, null);
-                    Assert.That(info.Finished, Is.True);
+                    storage.Finish(guid, null);
                 }
             }
 
@@ -91,16 +64,10 @@ namespace Tests
 
             for (int j = 0; j < infos.Count; j++)
             {
-                var info = infos[j];
+                (string guid, _) = infos[j];
                 if (j % 2 == 1)
                 {
-                    Assert.That(info.Finished, Is.False);
-                    storage.Finish(info.Id, null);
-                    Assert.That(info.Finished, Is.True);
-                }
-                else
-                {
-                    Assert.That(info.Finished, Is.True);
+                    storage.Finish(guid, null);
                 }
 
                 if(j == infos.Count - 1)
@@ -118,19 +85,20 @@ namespace Tests
         public void Finish()
         {
             var storage = new Bucket(maxItems: 100);
-            var infos = new List<MessageInfo>(100);
+            var infos = new List<(string guid, MessageInfo info)>(100);
             for (long j = 0; j < 100; j++)
             {
+                var guid = Guid.NewGuid().ToString();
                 var info = new MessageInfo();
-                storage.Add(info);
-                infos.Add(info);
+                storage.Add(guid, info);
+                infos.Add((guid, info));
             }
 
             for (int j = 0; j < infos.Count; j++)
             {
-                var info = infos[j];
+                (string guid, MessageInfo info) = infos[j];
                 Assert.That(info.Finished, Is.False);
-                storage.Finish(info.Id, null);
+                storage.Finish(guid, null);
                 Assert.That(info.Finished, Is.True);
             }
         }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace KafkaExchanger
@@ -101,11 +102,11 @@ namespace KafkaExchanger
             public int BucketId { get; set; }
         }
 
-        public async ValueTask<AddResult> TryAdd(MessageInfo messageInfo)
+        public async ValueTask<AddResult> TryAdd(string guid, MessageInfo messageInfo)
         {
             if (_buckets[_current].HavePlace)
             {
-                _buckets[_current].Add(messageInfo);
+                _buckets[_current].Add(guid, messageInfo);
                 return new AddResult
                 {
                     IsSuccess = true,
@@ -115,7 +116,7 @@ namespace KafkaExchanger
 
             if (TryMoveNext())
             {
-                _buckets[_current].Add(messageInfo);
+                _buckets[_current].Add(guid, messageInfo);
                 return new AddResult
                 {
                     IsSuccess = true,
@@ -132,7 +133,7 @@ namespace KafkaExchanger
             }
 
             TryMoveNext();
-            _buckets[_current].Add(messageInfo);
+            _buckets[_current].Add(guid, messageInfo);
             return new AddResult
             {
                 IsSuccess = true,
@@ -143,7 +144,7 @@ namespace KafkaExchanger
         public bool TryPop(
             Bucket delayBucket,
             out int freeBucketId,
-            out MessageInfo[] freeInfos
+            out Dictionary<string, MessageInfo> freeInfos
             )
         {
             var head = _buckets[_head];

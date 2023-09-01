@@ -1,6 +1,8 @@
 ﻿using KafkaExchanger;
 using NUnit.Framework;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Tests
@@ -135,17 +137,16 @@ namespace Tests
                 );
 
             var allCount = parametrs.MaxBuckets + 15;
-            var messagePacks = new Queue<MessageInfo[]>();
+            var messagePacks = new Queue<(int bucketId, string guid, MessageInfo info)[]>();
             for (int i = 0; i < allCount; i++)
             {
-                var infos = new MessageInfo[parametrs.ItemsInBucket];
+                var infos = new (int bucketId, string guid, MessageInfo info)[parametrs.ItemsInBucket];
                 for (int j = 0; j < parametrs.ItemsInBucket; j++)
                 {
+                    var guid = Guid.NewGuid().ToString();
                     var message = new MessageInfo();
-                    infos[j] = message;
-                    await storage.Push(message);
-
-                    Assert.That(message.Id, Is.EqualTo(j));
+                    var result = await storage.Push(guid, message);
+                    infos[j] = (result.BucketId, guid, message);
                 }
 
                 messagePacks.Enqueue(infos);
@@ -159,33 +160,46 @@ namespace Tests
                 Assert.That(newBuckets[i], Is.EqualTo(expectBucketId++));
             }
 
+            var iteration = 0;
+            var needInitBucketId = new Queue<int>();
             while (messagePacks.Count != 0)
             {
                 Assert.That(storage.TryPop(out _, out _, out _), Is.False);
-
-                //finish all Packs in fly
-                for (int i = 0; i < parametrs.MaxBuckets; i++)
+                var expectMessages = messagePacks.Dequeue();
+                if (++iteration > parametrs.MaxBuckets)
                 {
-                    for (int j = 0; j < parametrs.ItemsInBucket; j++)
+                    var needInit = needInitBucketId.Dequeue();
+                    for (int i = 0; i < expectMessages.Length; i++)
                     {
-                        storage.Finish(
-                            bucketId: i,
-                            messageId: j,
-                            offsets: null
-                            );
+                        expectMessages[i].bucketId = needInit;
                     }
                 }
 
-                for (int i = 0; i < parametrs.MaxBuckets; i++)
+                for (int i = 0; i < expectMessages.Length; i++)
                 {
-                    Assert.That(storage.TryPop(out _, out var actualMessages, out _), Is.True);
-                    var expectMessages = messagePacks.Dequeue();
+                    var (bucketId, guid, info) = expectMessages[i];
+                    storage.Finish(
+                        bucketId: bucketId,
+                        guid: guid,
+                        offsets: null
+                        );
+                }
 
-                    Assert.That(actualMessages, Has.Length.EqualTo(expectMessages.Length));
-                    for (int z = 0; z < expectMessages.Length; z++)
-                    {
-                        Assert.That(ReferenceEquals(expectMessages[z], actualMessages[z]), Is.True);
-                    }
+                Assert.That(storage.TryPop(out var actualBucketId, out var actualMessages, out var needInitInfos), Is.True);
+
+                Assert.That(actualMessages, Has.Count.EqualTo(expectMessages.Length));
+                for (int i = 0; i < expectMessages.Length; i++)
+                {
+                    var (bucketId, guid, info) = expectMessages[i];
+                    var actual = actualMessages[guid];
+
+                    Assert.That(actualBucketId, Is.EqualTo(bucketId));
+                    Assert.That(ReferenceEquals(info, actual), Is.True);
+                }
+
+                if(needInitInfos != null)
+                {
+                    needInitBucketId.Enqueue(actualBucketId);
                 }
 
                 Assert.That(storage.TryPop(out _, out _, out _), Is.False);
