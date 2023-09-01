@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Confluent.Kafka;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -96,6 +97,10 @@ namespace KafkaExchanger
         {
             if (_buckets[_current].HavePlace)
             {
+                if (_inUse == 0)
+                {
+                    _inUse++;
+                }
                 _buckets[_current].Add(guid, messageInfo);
                 return _buckets[_current].BucketId;
             }
@@ -103,6 +108,7 @@ namespace KafkaExchanger
             if (TryMoveNext())
             {
                 _buckets[_current].Add(guid, messageInfo);
+                _inUse++;
                 return _buckets[_current].BucketId;
             }
 
@@ -113,6 +119,35 @@ namespace KafkaExchanger
 
             _inUse++;
             return _buckets[_current].BucketId;
+        }
+
+        public void Push(
+            int bucketId,
+            string guid,
+            MessageInfo messageInfo
+            )
+        {
+            var bucket = Find(bucketId);
+            bucket.Add(guid, messageInfo);
+        }
+
+        public void Validate()
+        {
+            var endFind = false;
+            for (int i = 0; i < _buckets.Length; i++)
+            {
+                var current = _buckets[_current];
+                if (endFind && !current.IsEmpty())
+                {
+                    throw new Exception("Storage fragmented");
+                }
+
+                if (!current.IsFull() || i == _buckets.Length - 1)
+                {
+                    endFind = true;
+                    continue;
+                }
+            }
         }
 
         public void Pop(Bucket bucket)
@@ -138,18 +173,24 @@ namespace KafkaExchanger
             Confluent.Kafka.TopicPartitionOffset offset
             )
         {
+            var bucket = Find(bucketId);
+            bucket.SetOffset(guid, offsetId, offset);
+            if (_inUse > _inFlyLimit)
+            {
+                return OnlyWait();
+            }
+
+            return false;
+        }
+
+        private Bucket Find(int bucketId)
+        {
             for (int i = 0; i < _buckets.Length; i++)
             {
                 var bucket = _buckets[i];
-                if(bucket.BucketId == bucketId)
+                if (bucket.BucketId == bucketId)
                 {
-                    bucket.SetOffset(guid, offsetId, offset);
-                    if(_inUse > _inFlyLimit)
-                    {
-                        return OnlyWait();
-                    }
-
-                    return false;
+                    return bucket;
                 }
             }
 
@@ -161,17 +202,8 @@ namespace KafkaExchanger
             string guid
             )
         {
-            for (int i = 0; i < _buckets.Length; i++)
-            {
-                var bucket = _buckets[i];
-                if (bucket.BucketId == bucketId)
-                {
-                    bucket.Finish(guid);
-                    return;
-                }
-            }
-
-            throw new InvalidOperationException("Bucket not found");
+            var bucket = Find(bucketId);
+            bucket.Finish(guid);
         }
 
         private bool TryMoveNext()

@@ -124,7 +124,7 @@ namespace KafkaExchanger
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool CanFree()
         {
-            return _maxSize == _data.Count && _maxSize == _finished;
+            return IsFull() && _maxSize == _finished;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -133,9 +133,16 @@ namespace KafkaExchanger
             return _offsetsFull == _maxSize;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool IsEmpty()
         {
             return _data.Count == 0;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool IsFull()
+        {
+            return _data.Count == _maxSize;
         }
 
         public void Reset()
