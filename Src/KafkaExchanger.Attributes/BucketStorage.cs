@@ -144,6 +144,23 @@ namespace KafkaExchanger
             throw new InvalidOperationException();
         }
 
+        public void Finish(
+            int bucketId,
+            string guid
+            )
+        {
+            for (int i = 0; i < _buckets.Length; i++)
+            {
+                var bucket = _buckets[i];
+                if (bucket.BucketId == bucketId)
+                {
+                    bucket.Finish(guid);
+                }
+            }
+
+            throw new InvalidOperationException();
+        }
+
         private bool TryMoveNext()
         {
             var nextIndex = _current + 1;
