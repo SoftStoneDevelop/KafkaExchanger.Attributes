@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace KafkaExchanger
@@ -122,6 +123,25 @@ namespace KafkaExchanger
             {
                 _head = 0;
             }
+        }
+
+        public void SetOffset(
+            int bucketId,
+            string guid,
+            int offsetId,
+            Confluent.Kafka.TopicPartitionOffset offset
+            )
+        {
+            for (int i = 0; i < _buckets.Length; i++)
+            {
+                var bucket = _buckets[i];
+                if(bucket.BucketId == bucketId)
+                {
+                    bucket.SetOffset(guid, offsetId, offset);   
+                }
+            }
+
+            throw new InvalidOperationException();
         }
 
         private bool TryMoveNext()
