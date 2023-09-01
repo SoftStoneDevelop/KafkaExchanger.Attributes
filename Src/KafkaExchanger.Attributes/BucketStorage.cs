@@ -6,122 +6,209 @@ namespace KafkaExchanger
 {
     public class BucketStorage
     {
+        private readonly Func<int, ValueTask> _addNewBucket;
         private readonly int _itemsInBucket;
+        private readonly int _inputs;
 
-        private Queue<Bucket> _delayBuckets = new();
-        private Bucket _delayBucketsLast;
+        private int _current;
+        private int _head;
 
-        private readonly InFly _inFly;
+        private Bucket[] _buckets;
 
         public BucketStorage(
-            int maxBuckets,
+            int inputs,
             int itemsInBucket,
             Func<int, ValueTask> addNewBucket
             )
         {
-            _itemsInBucket = itemsInBucket;
-            _inFly = new InFly(
-                maxBuckets: maxBuckets,
-                itemsInBucket: itemsInBucket,
-                addNewBucket: addNewBucket
-                );
+            _inputs = inputs;
+            _addNewBucket = addNewBucket;
+            _itemsInBucket = Math.Max(itemsInBucket, 1);
         }
 
         public async ValueTask Init(
-            int minBuckets,
             Func<ValueTask<int>> currentBucketsCount
             )
         {
-            await _inFly.Init(
-                minBuckets, 
-                currentBucketsCount
+            var currentBuckets = await currentBucketsCount();
+            var size = Math.Max(1, currentBuckets);
+            _buckets = new Bucket[size];
+            for (int i = 0; i < size; i++)
+            {
+                var bucket = new Bucket(maxItems: _itemsInBucket, offsetSize: _inputs)
+                {
+                    BucketId = i
+                };
+
+                _buckets[i] = bucket;
+
+                if (i >= currentBuckets)
+                {
+                    await _addNewBucket(bucket.BucketId);
+                }
+            }
+
+            _head = 0;
+        }
+
+        private async ValueTask Expand()
+        {
+            var newBuckets = new Bucket[_buckets.Length + 1];
+            var initSize = newBuckets.Length - _buckets.Length;
+
+            var toCurrentSize = _current + 1;
+            Array.Copy(
+                sourceArray: _buckets,
+                sourceIndex: 0,
+                destinationArray: newBuckets,
+                destinationIndex: 0,
+                length: toCurrentSize
                 );
-        }
 
-        public class PushResult
-        {
-            public bool NeedStart { get; set; }
-
-            public object Process { get; set; }
-
-            public int BucketId { get; set; }
-        }
-
-        public async ValueTask<PushResult> Push(string guid, MessageInfo messageInfo)
-        {
-            if(_delayBucketsLast != null)
+            var bucket = new Bucket(maxItems: _itemsInBucket, offsetSize: _inputs)
             {
-                if (!_delayBucketsLast.HavePlace)
-                {
-                    _delayBucketsLast = new Bucket(_itemsInBucket);
-                    _delayBuckets.Enqueue(_delayBucketsLast);
-                }
-
-                _delayBucketsLast.Add(guid, messageInfo);
-            }
-            else
-            {
-                var tryAddResult = await _inFly.TryAdd(guid, messageInfo);
-                if (tryAddResult.IsSuccess)
-                {
-                    return new PushResult()
-                    {
-                        NeedStart = true,
-                        Process = messageInfo.TakeProcess(),
-                        BucketId = tryAddResult.BucketId
-                    };
-                }
-
-                _delayBucketsLast = new Bucket(_itemsInBucket);
-                _delayBucketsLast.Add(guid, messageInfo);
-                _delayBuckets.Enqueue(_delayBucketsLast);
-            }
-
-            return new PushResult() 
-            {
-                NeedStart = false
+                BucketId = _buckets.Length
             };
+
+            newBuckets[_current + 1] = bucket;
+            await _addNewBucket(bucket.BucketId);
+
+            var toEndSize = _buckets.Length - toCurrentSize;
+            if(toEndSize != 0)
+            {
+                Array.Copy(
+                    sourceArray: _buckets,
+                    sourceIndex: _current + 2,
+                    destinationArray: newBuckets,
+                    destinationIndex: _buckets.Length - toEndSize,
+                    length: toEndSize
+                    );
+            }
+            
+            _buckets = newBuckets;
         }
 
-        public bool TryPop(
-            out int bucketId,
-            out Dictionary<string, MessageInfo> canFreeInfos,
-            out Dictionary<string, MessageInfo> needInitInfos
-            )
+        public async ValueTask<int> Push(string guid, MessageInfo messageInfo)
         {
-            var needPop = _delayBuckets.TryPeek(out var addedNewInFly);
-            Dictionary<string, MessageInfo> temp = null;
-            if(needPop)
+            if (_buckets[_current].HavePlace)
             {
-                temp = addedNewInFly.Messages;
+                _buckets[_current].Add(guid, messageInfo);
+                return _buckets[_current].BucketId;
             }
-            var result = _inFly.TryPop(addedNewInFly, out bucketId, out canFreeInfos);
 
-            if(result && needPop)
+            if (TryMoveNext())
             {
-                needInitInfos = temp;
-                _delayBuckets.Dequeue();
-                if(_delayBuckets.Count == 0)
-                {
-                    _delayBucketsLast = null;
-                }
+                _buckets[_current].Add(guid, messageInfo);
+                return _buckets[_current].BucketId;
+            }
+
+            await Expand();
+
+            TryMoveNext();
+            _buckets[_current].Add(guid, messageInfo);
+            return _buckets[_current].BucketId;
+        }
+
+        public void Pop(Bucket bucket)
+        {
+            var head = _buckets[_head];
+            if(!ReferenceEquals(head, bucket))
+            {
+                throw new InvalidOperationException();
+            }
+
+            head.Reset();
+            if (++_head == _buckets.Length)
+            {
+                _head = 0;
+            }
+        }
+
+        private bool TryMoveNext()
+        {
+            var nextIndex = _current + 1;
+            if(nextIndex >= _buckets.Length)
+            {
+                nextIndex = 0;
+            }
+
+            if (_buckets[nextIndex].HavePlace)
+            {
+                _current = nextIndex;
+                return true;
             }
             else
             {
-                needInitInfos = null;
+                return false;
+            }
+        }
+
+        public List<Bucket> CanFreeBuckets()
+        {
+            var result = new List<Bucket>();
+            var current = _buckets[_head];
+            if(!current.CanFree())
+            {
+                return result;
             }
 
+            result.Add(current);
+
+            var scopeMax = current.MaxOffset;
+            var currentId = _head++;
+            if(currentId == _buckets.Length)
+            {
+                currentId = 0;
+            }
+            
+            current = _buckets[currentId];
+            if (current.IsEmpty())
+            {
+                return result;
+            }
+
+            while (current.CanFree() && currentId != _head)
+            {
+                var minOffsets = current.MinOffset;
+                var canFree = false;
+                for (int j = 0; j < scopeMax.Length; j++)
+                {
+                    canFree &= minOffsets[j] > scopeMax[j];
+                }
+
+                result.Add(current);
+                if (canFree)
+                {
+                    return result;
+                }
+                else
+                {
+                    scopeMax = current.MaxOffset;
+                }
+
+                if (++currentId == _buckets.Length)
+                {
+                    currentId = 0;
+                }
+                current = _buckets[currentId];
+            }
+
+            result.Clear();
             return result;
         }
 
-        public void Finish(
-            int bucketId,
-            string guid,
-            Confluent.Kafka.TopicPartitionOffset[] offsets
-            )
+        public Bucket Find(int bucketId)
         {
-            var bucket = _inFly.Find(bucketId);
-            bucket.Finish(guid, offsets);
+            for (int i = 0; i < _buckets.Length; i++)
+            {
+                var bucket = _buckets[i];
+                if (bucket.BucketId == bucketId)
+                {
+                    return bucket;
+                }
+            }
+
+            throw new Exception("Bucket not found");
         }
     }
 }

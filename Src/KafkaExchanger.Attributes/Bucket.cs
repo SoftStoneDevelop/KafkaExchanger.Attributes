@@ -11,9 +11,16 @@ namespace KafkaExchanger
 
         private int _finished = 0;
 
-        public Bucket(int maxItems)
+        public Bucket(int maxItems, int offsetSize)
         {
             _data = new Dictionary<string, MessageInfo>(maxItems);
+            _minOffset = new long[offsetSize];
+            _maxOffset = new long[offsetSize];
+            for (int i = 0; i < offsetSize; i++)
+            {
+                _minOffset[i] = -1;
+                _maxOffset[i] = -1;
+            }
             _maxSize = maxItems;
         }
 
@@ -34,6 +41,21 @@ namespace KafkaExchanger
 
         public Dictionary<string, MessageInfo> Messages => _data;
 
+        public long[] MinOffset
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => _minOffset;
+        }
+        private readonly long[] _minOffset;
+
+        public long[] MaxOffset
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => _maxOffset;
+        }
+        private readonly long[] _maxOffset;
+
+
         /// <summary>
         /// Add new horizon info
         /// </summary>
@@ -49,7 +71,33 @@ namespace KafkaExchanger
             _data[guid] = item;
         }
 
-        public MessageInfo Finish(string guid, Confluent.Kafka.TopicPartitionOffset[] offsets)
+        public void SetOffset(
+            string guid, 
+            int offsetId,
+            Confluent.Kafka.TopicPartitionOffset offset
+            )
+        {
+            if (!_data.TryGetValue(guid, out var result))
+            {
+                throw new Exception("Guid not found");
+            }
+
+            result.SetOffset(offsetId, offset);
+            var offsetVal = offset.Offset.Value;
+            var min = _minOffset[offsetId];
+            if(min == -1 || offsetVal < min)
+            {
+                _minOffset[offsetId] = offsetVal;
+            }
+
+            var max = _maxOffset[offsetId];
+            if(max == -1 || offsetVal > max)
+            {
+                _maxOffset[offsetId] = offsetVal;
+            }
+        }
+
+        public MessageInfo Finish(string guid)
         {
             if (!_data.TryGetValue(guid, out var result))
             {
@@ -61,7 +109,7 @@ namespace KafkaExchanger
                 return result;
             }
 
-            result.Finish(offsets);
+            result.Finish();
             _finished++;
 
             return result;
@@ -73,29 +121,15 @@ namespace KafkaExchanger
             return _maxSize == _data.Count && _maxSize == _finished;
         }
 
-        public Dictionary<string, MessageInfo> ResetMessages()
+        public bool IsEmpty()
         {
-            var result = _data;
-            _data = new Dictionary<string, MessageInfo>(_data.Count);
-            _finished = 0;
-            return result;
+            return _data.Count == 0;
         }
 
-        public Dictionary<string, MessageInfo> SetMessages(Bucket bucket)
+        public void Reset()
         {
-            var result = _data;
-            _data = bucket._data;
-            _finished = bucket._finished;
-
-            bucket.Clear();
-            return result;
-        }
-
-        private void Clear()
-        {
-            _data = null;
+            _data.Clear();
             _finished = 0;
-            BucketId = -1;
         }
     }
 }

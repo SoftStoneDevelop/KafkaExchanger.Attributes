@@ -4,6 +4,11 @@ namespace KafkaExchanger
 {
     public class MessageInfo
     {
+        public MessageInfo(int offsetsSize)
+        {
+            _offsets = new Confluent.Kafka.TopicPartitionOffset[offsetsSize];
+        }
+
         public bool Finished
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -40,10 +45,14 @@ namespace KafkaExchanger
             get => _process != null;
         }
 
-        public void Finish(Confluent.Kafka.TopicPartitionOffset[] offsets)
+        public void SetOffset(int id, Confluent.Kafka.TopicPartitionOffset offset)
+        {
+            _offsets[id] = offset;
+        }
+
+        public void Finish()
         {
             _finished = true;
-            _offsets = offsets;
         }
     }
 }
