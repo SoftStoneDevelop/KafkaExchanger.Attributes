@@ -14,13 +14,8 @@ namespace KafkaExchanger
         public Bucket(int maxItems, int offsetSize)
         {
             _data = new Dictionary<string, MessageInfo>(maxItems);
-            _minOffset = new long[offsetSize];
-            _maxOffset = new long[offsetSize];
-            for (int i = 0; i < offsetSize; i++)
-            {
-                _minOffset[i] = -1;
-                _maxOffset[i] = -1;
-            }
+            _minOffset = new Confluent.Kafka.TopicPartitionOffset[offsetSize];
+            _maxOffset = new Confluent.Kafka.TopicPartitionOffset[offsetSize];
             _maxSize = maxItems;
         }
 
@@ -41,19 +36,19 @@ namespace KafkaExchanger
 
         public Dictionary<string, MessageInfo> Messages => _data;
 
-        public long[] MinOffset
+        public Confluent.Kafka.TopicPartitionOffset[] MinOffset
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => _minOffset;
         }
-        private readonly long[] _minOffset;
+        private readonly Confluent.Kafka.TopicPartitionOffset[] _minOffset;
 
-        public long[] MaxOffset
+        public Confluent.Kafka.TopicPartitionOffset[] MaxOffset
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => _maxOffset;
         }
-        private readonly long[] _maxOffset;
+        private readonly Confluent.Kafka.TopicPartitionOffset[] _maxOffset;
 
 
         /// <summary>
@@ -85,15 +80,15 @@ namespace KafkaExchanger
             result.SetOffset(offsetId, offset);
             var offsetVal = offset.Offset.Value;
             var min = _minOffset[offsetId];
-            if(min == -1 || offsetVal < min)
+            if(min == null || offsetVal < min.Offset.Value)
             {
-                _minOffset[offsetId] = offsetVal;
+                _minOffset[offsetId] = offset;
             }
 
             var max = _maxOffset[offsetId];
-            if(max == -1 || offsetVal > max)
+            if(max == null || offsetVal > max.Offset.Value)
             {
-                _maxOffset[offsetId] = offsetVal;
+                _maxOffset[offsetId] = offset;
             }
         }
 
@@ -129,6 +124,8 @@ namespace KafkaExchanger
         public void Reset()
         {
             _data.Clear();
+            Array.Clear(_minOffset);
+            Array.Clear(_maxOffset);
             _finished = 0;
         }
     }
