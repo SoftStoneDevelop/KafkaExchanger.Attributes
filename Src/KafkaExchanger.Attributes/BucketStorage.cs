@@ -255,7 +255,7 @@ namespace KafkaExchanger
                 var canFree = false;
                 for (int j = 0; j < scopeMax.Length; j++)
                 {
-                    canFree &= minOffsets[j].Offset.Value > scopeMax[j].Offset.Value;
+                    canFree &= scopeMax[j] == null || minOffsets[j] == null || minOffsets[j].Offset.Value > scopeMax[j].Offset.Value;
                 }
 
                 result.Add(current);
