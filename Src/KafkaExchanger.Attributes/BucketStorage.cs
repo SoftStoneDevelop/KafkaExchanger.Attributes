@@ -1,7 +1,9 @@
 ﻿using Confluent.Kafka;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using static System.Formats.Asn1.AsnWriter;
 
 namespace KafkaExchanger
 {
@@ -227,16 +229,18 @@ namespace KafkaExchanger
 
         public List<Bucket> CanFreeBuckets()
         {
-            var result = new List<Bucket>();
+            var mustBeFreeSequence = new List<Bucket>();
             var current = _buckets[_head];
             if(!current.CanFree())
             {
-                return result;
+                return mustBeFreeSequence;
             }
 
-            result.Add(current);
+            mustBeFreeSequence.Add(current);
 
-            var scopeMax = current.MaxOffset;
+            var scopeMax = new TopicPartitionOffset[current.MaxOffset.Length];
+            current.MaxOffset.CopyTo(scopeMax, 0);
+
             var currentId = _head + 1;
             if(currentId == _buckets.Length)
             {
@@ -244,28 +248,79 @@ namespace KafkaExchanger
             }
             
             current = _buckets[currentId];
-            if (current.IsEmpty())
+            if (currentId == _head || current.IsEmpty())
             {
-                return result;
+                return mustBeFreeSequence;
             }
 
-            while (current.CanFree() && currentId != _head)
+            var potentiallyInScope = new List<Bucket>();
+            Confluent.Kafka.TopicPartitionOffset[] maxPIS = null;
+            while (!current.IsEmpty() && currentId != _head)
             {
-                var minOffsets = current.MinOffset;
-                var canFree = false;
+                var inScope = true;
                 for (int j = 0; j < scopeMax.Length; j++)
                 {
-                    canFree &= scopeMax[j] == null || minOffsets[j] == null || minOffsets[j].Offset.Value > scopeMax[j].Offset.Value;
+                    inScope &= scopeMax[j] != null && current.MinOffset[j] != null && (current.MinOffset[j].Offset.Value > scopeMax[j].Offset.Value);
                 }
 
-                result.Add(current);
-                if (canFree)
+                if (inScope)
                 {
-                    return result;
+                    if(!current.CanFree())
+                    {
+                        return new List<Bucket>(0);
+                    }
+
+                    if(potentiallyInScope.Count != 0)
+                    {
+                        if (potentiallyInScope.Any(an => !an.CanFree()))
+                        {
+                            return new List<Bucket>(0);
+                        }
+
+                        for (int j = 0; j < potentiallyInScope.Count; j++)
+                        {
+                            mustBeFreeSequence.Add(potentiallyInScope[j]);
+                        }
+                        potentiallyInScope.Clear();
+
+                        for (int j = 0; j < scopeMax.Length; j++)
+                        {
+                            if (maxPIS[j] != null && (scopeMax[j] == null || maxPIS[j].Offset.Value > scopeMax[j].Offset.Value))
+                            {
+                                scopeMax[j] = maxPIS[j];
+                            }
+                        }
+
+                        maxPIS = null;
+                    }
+
+                    mustBeFreeSequence.Add(current);
+                    for (int j = 0; j < scopeMax.Length; j++)
+                    {
+                        if (current.MaxOffset[j]!= null && (scopeMax[j] == null || current.MaxOffset[j].Offset.Value > scopeMax[j].Offset.Value))
+                        {
+                            scopeMax[j] = current.MaxOffset[j];
+                        }
+                    }
                 }
                 else
                 {
-                    scopeMax = current.MaxOffset;
+                    potentiallyInScope.Add(current);
+                    if(maxPIS == null)
+                    {
+                        maxPIS = new TopicPartitionOffset[current.MaxOffset.Length];
+                        current.MaxOffset.CopyTo(maxPIS, 0);
+                    }
+                    else
+                    {
+                        for (int j = 0; j < maxPIS.Length; j++)
+                        {
+                            if (current.MaxOffset[j] != null && (maxPIS[j] == null || maxPIS[j].Offset.Value < current.MaxOffset[j].Offset.Value))
+                            {
+                                maxPIS[j] = current.MaxOffset[j];
+                            }
+                        }
+                    }
                 }
 
                 if (++currentId == _buckets.Length)
@@ -275,8 +330,7 @@ namespace KafkaExchanger
                 current = _buckets[currentId];
             }
 
-            result.Clear();
-            return result;
+            return mustBeFreeSequence.Any(an => !an.CanFree()) ? new List<Bucket>(0) : mustBeFreeSequence;
         }
 
         public bool OnlyWait()
