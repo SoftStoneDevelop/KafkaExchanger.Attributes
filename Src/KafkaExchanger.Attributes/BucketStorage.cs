@@ -330,6 +330,27 @@ namespace KafkaExchanger
                 current = _buckets[currentId];
             }
 
+            foreach (var pis in potentiallyInScope)
+            {
+                var isNull = true;
+                if(!pis.CanFree())
+                {
+                    break;
+                }
+
+                for (int i = 0; i < pis.MaxOffset.Length; i++)
+                {
+                    isNull &= pis.MaxOffset[i] == null;
+                }
+
+                if(!isNull)
+                {
+                    break;
+                }
+
+                mustBeFreeSequence.Add(pis);
+            }
+
             return mustBeFreeSequence.Any(an => !an.CanFree()) ? new List<Bucket>(0) : mustBeFreeSequence;
         }
 

@@ -11,20 +11,20 @@ namespace Tests
     internal class BucketStorageFixture
     {
         [Test]
-        public async Task CanFreeeNullOffsets()
+        public async Task CanFreeNullOffsets()
         {
             var storage = new BucketStorage(5, 2, 50, static (bucketId) => { return ValueTask.CompletedTask; });
             await storage.Init(static () => { return ValueTask.FromResult(0); });
 
-            var items = new List<string[]>();
+            var buckets = new List<string[]>();
             string[] currentBucket = null;
             int currentId = 0;
-            for (int i = 0; i < 150; i++)
+            for (int i = 0; i < 150; i++)//3 buckets
             {
-                if(currentId == 0 || currentId == currentBucket.Length)
+                if (currentId == 0 || currentId == currentBucket.Length)
                 {
                     currentBucket = new string[50];
-                    items.Add(currentBucket);
+                    buckets.Add(currentBucket);
                     currentId = 0;
                 }
 
@@ -34,29 +34,47 @@ namespace Tests
                 currentBucket[currentId++] = guid;
             }
 
-            for (int i = 0; i < items.Count; i++)
-            {
-                var canFree = storage.CanFreeBuckets();
-                Assert.That(canFree, Has.Count.EqualTo(0));
-                var item = items[i];
-                for (int j = 0; j < item.Length; j++)
-                {
-                    var guid = item[j];
-                    storage.Finish(i, guid);
-                }
+            var canFree = storage.CanFreeBuckets();
+            Assert.That(canFree, Has.Count.EqualTo(0));
 
-                canFree = storage.CanFreeBuckets();
-                Assert.That(canFree, Has.Count.EqualTo(1));
-                storage.Pop(canFree[0]);
-                canFree = storage.CanFreeBuckets();
-                Assert.That(canFree, Has.Count.EqualTo(0));
+            var bucket = buckets[0];
+            for (int j = 0; j < bucket.Length; j++)
+            {
+                storage.Finish(0, bucket[j]);
             }
 
-            Assert.That(storage.CanFreeBuckets(), Has.Count.EqualTo(0));
+            canFree = storage.CanFreeBuckets();
+            Assert.That(canFree, Has.Count.EqualTo(1));
+
+            bucket = buckets[1];
+            for (int j = 0; j < bucket.Length; j++)
+            {
+                storage.Finish(1, bucket[j]);
+            }
+
+            canFree = storage.CanFreeBuckets();
+            Assert.That(canFree, Has.Count.EqualTo(2));
+
+            bucket = buckets[2];
+            for (int j = 0; j < 20; j++)
+            {
+                storage.Finish(2, bucket[j]);
+            }
+
+            canFree = storage.CanFreeBuckets();
+            Assert.That(canFree, Has.Count.EqualTo(2));
+
+            for (int j = 20; j < bucket.Length; j++)
+            {
+                storage.Finish(2, bucket[j]);
+            }
+
+            canFree = storage.CanFreeBuckets();
+            Assert.That(canFree, Has.Count.EqualTo(3));
         }
 
         [Test]
-        public async Task CanFreee()
+        public async Task CanFree()
         {
             var storage = new BucketStorage(5, 2, 50, static (bucketId) => { return ValueTask.CompletedTask; });
             await storage.Init(static () => { return ValueTask.FromResult(0); });
