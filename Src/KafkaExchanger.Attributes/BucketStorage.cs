@@ -61,8 +61,6 @@ namespace KafkaExchanger
         private async ValueTask Expand()
         {
             var newBuckets = new Bucket[_buckets.Length + 1];
-            var initSize = newBuckets.Length - _buckets.Length;
-
             var toCurrentSize = _current + 1;
             Array.Copy(
                 sourceArray: _buckets,
@@ -85,9 +83,9 @@ namespace KafkaExchanger
             {
                 Array.Copy(
                     sourceArray: _buckets,
-                    sourceIndex: _current + 2,
+                    sourceIndex: _current + 1,
                     destinationArray: newBuckets,
-                    destinationIndex: _buckets.Length - toEndSize,
+                    destinationIndex: toCurrentSize,
                     length: toEndSize
                     );
             }
