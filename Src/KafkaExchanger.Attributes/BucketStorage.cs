@@ -78,6 +78,7 @@ namespace KafkaExchanger
                     destinationIndex: 1,
                     length: _buckets.Length
                     );
+                _current = 0;
             }
             else
             {
@@ -100,6 +101,8 @@ namespace KafkaExchanger
                     destinationIndex: copyBeforeSize + 1,
                     length: _buckets.Length - copyBeforeSize
                     );
+
+                _current++;
             }
 
             _buckets = newBuckets;
@@ -125,8 +128,6 @@ namespace KafkaExchanger
             }
 
             await Expand();
-
-            TryMoveNext();
             _buckets[_current].Add(guid, messageInfo);
 
             _inUse++;
