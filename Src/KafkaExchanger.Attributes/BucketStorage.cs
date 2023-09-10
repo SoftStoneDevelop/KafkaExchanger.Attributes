@@ -68,17 +68,18 @@ namespace KafkaExchanger
 
             if (_current == _buckets.Length - 1)
             {
-                newBuckets[0] = bucket;
+                newBuckets[^1] = bucket;
                 await _addNewBucket(bucket.BucketId);
 
                 Array.Copy(
                     sourceArray: _buckets,
                     sourceIndex: 0,
                     destinationArray: newBuckets,
-                    destinationIndex: 1,
+                    destinationIndex: 0,
                     length: _buckets.Length
                     );
-                _current = 0;
+
+                _current = _buckets.Length;
             }
             else
             {
@@ -103,6 +104,7 @@ namespace KafkaExchanger
                     );
 
                 _current++;
+                _head++;
             }
 
             _buckets = newBuckets;
