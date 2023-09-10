@@ -61,35 +61,47 @@ namespace KafkaExchanger
         private async ValueTask Expand()
         {
             var newBuckets = new Bucket[_buckets.Length + 1];
-            var toCurrentSize = _current + 1;
-            Array.Copy(
-                sourceArray: _buckets,
-                sourceIndex: 0,
-                destinationArray: newBuckets,
-                destinationIndex: 0,
-                length: toCurrentSize
-                );
-
             var bucket = new Bucket(maxItems: _itemsInBucket, offsetSize: _inputs)
             {
                 BucketId = _buckets.Length
             };
 
-            newBuckets[_current + 1] = bucket;
-            await _addNewBucket(bucket.BucketId);
-
-            var toEndSize = _buckets.Length - toCurrentSize;
-            if(toEndSize != 0)
+            if (_current == _buckets.Length - 1)
             {
+                newBuckets[0] = bucket;
+                await _addNewBucket(bucket.BucketId);
+
                 Array.Copy(
                     sourceArray: _buckets,
-                    sourceIndex: _current + 1,
+                    sourceIndex: 0,
                     destinationArray: newBuckets,
-                    destinationIndex: toCurrentSize,
-                    length: toEndSize
+                    destinationIndex: 1,
+                    length: _buckets.Length
                     );
             }
-            
+            else
+            {
+                var copyBeforeSize = _current + 1;
+                Array.Copy(
+                    sourceArray: _buckets,
+                    sourceIndex: 0,
+                    destinationArray: newBuckets,
+                    destinationIndex: 0,
+                    length: copyBeforeSize
+                    );
+
+                newBuckets[_current + 1] = bucket;
+                await _addNewBucket(bucket.BucketId).ConfigureAwait(false);
+
+                Array.Copy(
+                    sourceArray: _buckets,
+                    sourceIndex: copyBeforeSize,
+                    destinationArray: newBuckets,
+                    destinationIndex: copyBeforeSize + 1,
+                    length: _buckets.Length - copyBeforeSize
+                    );
+            }
+
             _buckets = newBuckets;
         }
 
