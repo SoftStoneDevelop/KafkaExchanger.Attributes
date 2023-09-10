@@ -92,11 +92,12 @@ namespace KafkaExchanger
                 _maxOffset[offsetId] = offset;
             }
 
-            var allInputDone = false;
+            var allInputDone = true;
             for (int i = 0; i < result.TopicPartitionOffset.Length; i++)
             {
                 allInputDone &= result.TopicPartitionOffset[i] != null;
             }
+
             if(allInputDone)
             {
                 _offsetsFull++;

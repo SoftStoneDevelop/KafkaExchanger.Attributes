@@ -103,7 +103,7 @@ namespace Tests
             var bucket = buckets[0];
             var bucket0Min = 20;
             var bucket0Max = bucket0Min - 1;
-            //20 => 60
+            //20 => 69
             for (int j = 0; j < bucket.Length; j++)
             {
                 var offset = ++bucket0Max;
@@ -133,9 +133,9 @@ namespace Tests
             Assert.That(canFree, Has.Count.EqualTo(1));
 
             bucket = buckets[1];
-            var bucket1Min = 61;
+            var bucket1Min = 70;
             var bucket1Max = bucket1Min - 1;
-            //61 => 111
+            //70 => 119
             for (int j = 0; j < bucket.Length; j++)
             {
                 var offset = ++bucket1Max;
@@ -170,7 +170,7 @@ namespace Tests
             //0 => 19
             for (int j = 0; j < 20; j++)
             {
-                var offset = ++bucket0Max;
+                var offset = ++bucket2Max;
                 storage.Finish(2, bucket[j]);
                 storage.SetOffset(
                     2,
@@ -196,10 +196,11 @@ namespace Tests
             canFree = storage.CanFreeBuckets();
             Assert.That(canFree, Has.Count.EqualTo(0));
 
-            bucket2Max = 111;
+            //0-19 + 121 => 171
+            bucket2Max = 121;
             for (int j = 20; j < bucket.Length; j++)
             {
-                var offset = ++bucket0Max;
+                var offset = ++bucket2Max;
                 storage.Finish(2, bucket[j]);
                 storage.SetOffset(
                     2,
@@ -224,6 +225,128 @@ namespace Tests
 
             canFree = storage.CanFreeBuckets();
             Assert.That(canFree, Has.Count.EqualTo(3));
+        }
+
+        [Test]
+        public async Task CanStopConsume()
+        {
+            var storage = new BucketStorage(5, 2, 50, static (bucketId) => { return ValueTask.CompletedTask; });
+            await storage.Init(static () => { return ValueTask.FromResult(0); });
+
+            var buckets = new List<string[]>();
+            string[] currentBucket = null;
+            int currentId = 0;
+            for (int i = 0; i < 50 * 7; i++)
+            {
+                if (currentId == 0 || currentId == currentBucket.Length)
+                {
+                    currentBucket = new string[50];
+                    buckets.Add(currentBucket);
+                    currentId = 0;
+                }
+
+                var message = new MessageInfo(2);
+                var guid = Guid.NewGuid().ToString("D");
+                var bucketId = await storage.Push(guid, message);
+                currentBucket[currentId++] = guid;
+            }
+
+            var canFree = storage.CanFreeBuckets();
+            Assert.That(canFree, Has.Count.EqualTo(0));
+
+            var bucketMin = 0;
+            var bucketMax = bucketMin - 1;
+            for (int i = 0; i < 4; i++)//set offsets in 0..3 buckets
+            {
+                var bucket = buckets[i];
+                for (int j = 0; j < bucket.Length; j++)
+                {
+                    var offset = ++bucketMax;
+                    var canStopConsume = storage.SetOffset(
+                        i,
+                        bucket[j],
+                        0,
+                        new Confluent.Kafka.TopicPartitionOffset(
+                            new Confluent.Kafka.TopicPartition("topic1", new Confluent.Kafka.Partition(0)),
+                            new Confluent.Kafka.Offset(offset)
+                            )
+                        );
+                    Assert.That(canStopConsume, Is.False);
+                    canStopConsume = storage.SetOffset(
+                        i,
+                        bucket[j],
+                        1,
+                        new Confluent.Kafka.TopicPartitionOffset(
+                            new Confluent.Kafka.TopicPartition("topic1", new Confluent.Kafka.Partition(0)),
+                            new Confluent.Kafka.Offset(offset)
+                            )
+                        );
+                    Assert.That(canStopConsume, Is.False);
+                }
+            }
+
+            for (int i = 5; i < 7; i++)//set offsets in 5..6 buckets
+            {
+                var bucket = buckets[i];
+                for (int j = 0; j < bucket.Length; j++)
+                {
+                    var offset = ++bucketMax;
+                    var canStopConsume = storage.SetOffset(
+                        i,
+                        bucket[j],
+                        0,
+                        new Confluent.Kafka.TopicPartitionOffset(
+                            new Confluent.Kafka.TopicPartition("topic1", new Confluent.Kafka.Partition(0)),
+                            new Confluent.Kafka.Offset(offset)
+                            )
+                        );
+                    Assert.That(canStopConsume, Is.False);
+                    canStopConsume = storage.SetOffset(
+                        i,
+                        bucket[j],
+                        1,
+                        new Confluent.Kafka.TopicPartitionOffset(
+                            new Confluent.Kafka.TopicPartition("topic1", new Confluent.Kafka.Partition(0)),
+                            new Confluent.Kafka.Offset(offset)
+                            )
+                        );
+                    Assert.That(canStopConsume, Is.False);
+                }
+            }
+
+            var bucket4 = buckets[4];
+            for (int j = 0; j < bucket4.Length; j++)
+            {
+                var offset = ++bucketMax;
+                var canStopConsume = storage.SetOffset(
+                    4,
+                    bucket4[j],
+                    0,
+                    new Confluent.Kafka.TopicPartitionOffset(
+                        new Confluent.Kafka.TopicPartition("topic1", new Confluent.Kafka.Partition(0)),
+                        new Confluent.Kafka.Offset(offset)
+                        )
+                    );
+                Assert.That(canStopConsume, Is.False);
+                canStopConsume = storage.SetOffset(
+                    4,
+                    bucket4[j],
+                    1,
+                    new Confluent.Kafka.TopicPartitionOffset(
+                        new Confluent.Kafka.TopicPartition("topic1", new Confluent.Kafka.Partition(0)),
+                        new Confluent.Kafka.Offset(offset)
+                        )
+                    );
+
+                if(j == bucket4.Length - 1)
+                {
+                    Assert.That(canStopConsume, Is.True);
+                }
+                else
+                {
+                    Assert.That(canStopConsume, Is.False);
+                }
+            }
         }
     }
 }

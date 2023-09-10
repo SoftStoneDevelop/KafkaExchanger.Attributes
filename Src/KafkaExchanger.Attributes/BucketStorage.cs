@@ -260,7 +260,7 @@ namespace KafkaExchanger
                 var inScope = true;
                 for (int j = 0; j < scopeMax.Length; j++)
                 {
-                    inScope &= scopeMax[j] != null && current.MinOffset[j] != null && (current.MinOffset[j].Offset.Value > scopeMax[j].Offset.Value);
+                    inScope &= scopeMax[j] != null && current.MinOffset[j] != null && (current.MinOffset[j].Offset.Value < scopeMax[j].Offset.Value);
                 }
 
                 if (inScope)
@@ -356,13 +356,18 @@ namespace KafkaExchanger
 
         public bool OnlyWait()
         {
+            var onlyWaitFinish = new List<Bucket>();
             var current = _buckets[_head];
             if (!current.OnlyWaitFinish())
             {
                 return false;
             }
 
-            var scopeMax = current.MaxOffset;
+            onlyWaitFinish.Add(current);
+
+            var scopeMax = new TopicPartitionOffset[current.MaxOffset.Length];
+            current.MaxOffset.CopyTo(scopeMax, 0);
+
             var currentId = _head + 1;
             if (currentId == _buckets.Length)
             {
@@ -370,27 +375,79 @@ namespace KafkaExchanger
             }
 
             current = _buckets[currentId];
-            if (current.IsEmpty())
+            if (currentId == _head || current.IsEmpty())
             {
-                return false;
+                return true;
             }
 
-            while (current.OnlyWaitFinish() && currentId != _head)
+            var potentiallyInScope = new List<Bucket>();
+            Confluent.Kafka.TopicPartitionOffset[] maxPIS = null;
+            while (!current.IsEmpty() && currentId != _head)
             {
-                var minOffsets = current.MinOffset;
-                var canFree = false;
+                var inScope = true;
                 for (int j = 0; j < scopeMax.Length; j++)
                 {
-                    canFree &= minOffsets[j].Offset.Value > scopeMax[j].Offset.Value;
+                    inScope &= scopeMax[j] != null && current.MinOffset[j] != null && (current.MinOffset[j].Offset.Value < scopeMax[j].Offset.Value);
                 }
 
-                if (canFree)
+                if (inScope)
                 {
-                    return true;
+                    if (!current.OnlyWaitFinish())
+                    {
+                        return false;
+                    }
+
+                    if (potentiallyInScope.Count != 0)
+                    {
+                        if (potentiallyInScope.Any(an => !an.OnlyWaitFinish()))
+                        {
+                            return false;
+                        }
+
+                        for (int j = 0; j < potentiallyInScope.Count; j++)
+                        {
+                            onlyWaitFinish.Add(potentiallyInScope[j]);
+                        }
+                        potentiallyInScope.Clear();
+
+                        for (int j = 0; j < scopeMax.Length; j++)
+                        {
+                            if (maxPIS[j] != null && (scopeMax[j] == null || maxPIS[j].Offset.Value > scopeMax[j].Offset.Value))
+                            {
+                                scopeMax[j] = maxPIS[j];
+                            }
+                        }
+
+                        maxPIS = null;
+                    }
+
+                    onlyWaitFinish.Add(current);
+                    for (int j = 0; j < scopeMax.Length; j++)
+                    {
+                        if (current.MaxOffset[j] != null && (scopeMax[j] == null || current.MaxOffset[j].Offset.Value > scopeMax[j].Offset.Value))
+                        {
+                            scopeMax[j] = current.MaxOffset[j];
+                        }
+                    }
                 }
                 else
                 {
-                    scopeMax = current.MaxOffset;
+                    potentiallyInScope.Add(current);
+                    if (maxPIS == null)
+                    {
+                        maxPIS = new TopicPartitionOffset[current.MaxOffset.Length];
+                        current.MaxOffset.CopyTo(maxPIS, 0);
+                    }
+                    else
+                    {
+                        for (int j = 0; j < maxPIS.Length; j++)
+                        {
+                            if (current.MaxOffset[j] != null && (maxPIS[j] == null || maxPIS[j].Offset.Value < current.MaxOffset[j].Offset.Value))
+                            {
+                                maxPIS[j] = current.MaxOffset[j];
+                            }
+                        }
+                    }
                 }
 
                 if (++currentId == _buckets.Length)
@@ -400,7 +457,17 @@ namespace KafkaExchanger
                 current = _buckets[currentId];
             }
 
-            return false;
+            foreach (var pis in potentiallyInScope)
+            {
+                if (!pis.OnlyWaitFinish())
+                {
+                    break;
+                }
+
+                onlyWaitFinish.Add(pis);
+            }
+
+            return onlyWaitFinish.Any(an => !an.OnlyWaitFinish()) ? false : onlyWaitFinish.Count >= _inFlyLimit;
         }
     }
 }
