@@ -355,10 +355,10 @@ namespace Tests
             var storage = new BucketStorage(5, 2, 10, static (bucketId) => { return ValueTask.CompletedTask; });
             await storage.Init(static () => { return ValueTask.FromResult(0); });
 
-            var guids = new Queue<(string, int)>(100);
-            for (int i = 0; i < 100; i++)
+            var guids = new Queue<(string, int)>(1000);
+            for (int i = 0; i < 1000; i++)
             {
-                for (int j = 0; j < 100; j++)
+                for (int j = 0; j < 1000; j++)
                 {
                     var guid = Guid.NewGuid().ToString("D");
                     var bucketId = await storage.Push(guid, new MessageInfo(2));
@@ -379,7 +379,7 @@ namespace Tests
                     }
                 }
 
-                for (int j = 0; j < 100; j++)
+                for (int j = 0; j < 1000; j++)
                 {
                     var guid = Guid.NewGuid().ToString("D");
                     var bucketId = await storage.Push(guid, new MessageInfo(2));
