@@ -223,12 +223,20 @@ namespace KafkaExchanger
 
         private Bucket Find(int bucketId)
         {
-            for (int i = 0; i < _buckets.Length; i++)
+            var iterations = 0;
+            var i = _head;
+
+            while (iterations++ < _buckets.Length)
             {
-                var bucket = _buckets[i];
+                var bucket = _buckets[i++];
                 if (bucket.BucketId == bucketId)
                 {
                     return bucket;
+                }
+
+                if (i == _buckets.Length)
+                {
+                    i = 0;
                 }
             }
 
