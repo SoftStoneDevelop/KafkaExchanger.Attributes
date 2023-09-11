@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using static System.Formats.Asn1.AsnWriter;
 
 namespace KafkaExchanger
 {
@@ -130,6 +129,7 @@ namespace KafkaExchanger
             }
 
             await Expand();
+
             _buckets[_current].Add(guid, messageInfo);
 
             _inUse++;
@@ -149,18 +149,36 @@ namespace KafkaExchanger
         public void Validate()
         {
             var endFind = false;
-            for (int i = 0; i < _buckets.Length; i++)
+            var iterations = 0;
+            var i = _head;
+            while(iterations++ < _buckets.Length - 1)
             {
-                var current = _buckets[_current];
-                if (endFind && !current.IsEmpty())
+                var current = _buckets[i];
+                if (endFind)
                 {
-                    throw new Exception("Storage fragmented");
+                    if(!current.IsEmpty())
+                    {
+                        throw new Exception("Storage fragmented");
+                    }
+                    else
+                    {
+                        if (++i == _buckets.Length)
+                        {
+                            i = 0;
+                        }
+
+                        continue;
+                    }
                 }
 
-                if (!current.IsFull() || i == _buckets.Length - 1)
+                if (!current.IsFull() || i == _current)
                 {
                     endFind = true;
-                    continue;
+                }
+
+                if(++i == _buckets.Length)
+                {
+                    i = 0;
                 }
             }
         }
@@ -173,12 +191,17 @@ namespace KafkaExchanger
                 throw new InvalidOperationException();
             }
 
+            _inUse--;
             head.Reset();
+            if (_head == _current)
+            {
+                return;
+            }
+            else
             if (++_head == _buckets.Length)
             {
                 _head = 0;
             }
-            _inUse--;
         }
 
         public bool SetOffset(

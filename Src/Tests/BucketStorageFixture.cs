@@ -348,5 +348,59 @@ namespace Tests
                 }
             }
         }
+
+        [Test]
+        public async Task PushPopMany()
+        {
+            var storage = new BucketStorage(5, 2, 10, static (bucketId) => { return ValueTask.CompletedTask; });
+            await storage.Init(static () => { return ValueTask.FromResult(0); });
+
+            var guids = new Queue<(string, int)>(100);
+            for (int i = 0; i < 100; i++)
+            {
+                for (int j = 0; j < 100; j++)
+                {
+                    var guid = Guid.NewGuid().ToString("D");
+                    var bucketId = await storage.Push(guid, new MessageInfo(2));
+                    storage.Validate();
+                    guids.Enqueue((guid, bucketId));
+                }
+
+                for (int j = 0; j < guids.Count / 2; j++)
+                {
+                    var item = guids.Dequeue();
+                    storage.Finish(item.Item2, item.Item1);
+                    storage.Validate();
+                    var free = storage.CanFreeBuckets();
+                    foreach (var freeItem in free)
+                    {
+                        storage.Pop(freeItem);
+                        storage.Validate();
+                    }
+                }
+
+                for (int j = 0; j < 100; j++)
+                {
+                    var guid = Guid.NewGuid().ToString("D");
+                    var bucketId = await storage.Push(guid, new MessageInfo(2));
+                    storage.Validate();
+                    guids.Enqueue((guid, bucketId));
+                }
+
+                while (guids.TryDequeue(out var item))
+                {
+                    storage.Finish(item.Item2, item.Item1);
+                    storage.Validate();
+                    var free = storage.CanFreeBuckets();
+                    foreach (var freeItem in free)
+                    {
+                        storage.Pop(freeItem);
+                        storage.Validate();
+                    }
+                }
+
+                storage.Validate();
+            }
+        }
     }
 }
