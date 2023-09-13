@@ -402,5 +402,42 @@ namespace Tests
                 storage.Validate();
             }
         }
+
+        [Test]
+        public async Task Validate()
+        {
+            var storage = new BucketStorage(5, 2, 10, static (bucketId) => { return ValueTask.CompletedTask; });
+            await storage.Init(static () => { return ValueTask.FromResult(5); });
+
+            //bucket 1
+            for (int j = 0; j < 10; j++)
+            {
+                var guid = Guid.NewGuid().ToString("D");
+                storage.Push(1, guid, new MessageInfo(2));
+                var exception = Assert.Throws<Exception>(storage.Validate);
+                Assert.That(exception.Message, Is.EqualTo("Storage fragmented"));
+            }
+
+            //bucket 2
+            for (int j = 0; j < 10; j++)
+            {
+                var guid = Guid.NewGuid().ToString("D");
+                storage.Push(2, guid, new MessageInfo(2));
+                var exception = Assert.Throws<Exception>(storage.Validate);
+                Assert.That(exception.Message, Is.EqualTo("Storage fragmented"));
+            }
+
+            //bucket 0
+            for (int j = 0; j < 10; j++)
+            {
+                var guid = Guid.NewGuid().ToString("D");
+                storage.Push(0, guid, new MessageInfo(2));
+                var exception = Assert.Throws<Exception>(storage.Validate);
+                Assert.That(exception.Message, Is.EqualTo("Storage fragmented"));
+            }
+
+            storage.AutoDefineHeadAndTail();
+            Assert.DoesNotThrow(storage.Validate);
+        }
     }
 }

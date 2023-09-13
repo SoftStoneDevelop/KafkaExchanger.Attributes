@@ -183,6 +183,34 @@ namespace KafkaExchanger
             }
         }
 
+        public void AutoDefineHeadAndTail()
+        {
+            if(_head != 0 || _current != 0)
+            {
+                throw new Exception("Can not auto define head and tail in storage where messages been deleted");
+            }
+
+            var headFind = false;
+            int tail = 0;
+            for (int i = 0; i < _buckets.Length; i++)
+            {
+                var current = _buckets[i];
+                tail = i;
+                if (!headFind && !current.IsEmpty())
+                {
+                    _head = i;
+                    headFind = true;
+                }
+
+                if (current.IsEmpty() || !current.IsFull())
+                {
+                    break;
+                }
+            }
+
+            _current = tail;
+        }
+
         public void Pop(Bucket bucket)
         {
             var head = _buckets[_head];
